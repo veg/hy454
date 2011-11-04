@@ -25,7 +25,8 @@ class CodonAligner(HyphyInterface):
         super(CodonAligner, self).__init__(batchfile, 1)
 
     def align(self, refseq, seqs, quiet=True):
-        # compute next power of two size string for the output
+        # pad the reference to the nearest codon,
+        # otherwise the hyphy codon alignment algo barfs 
         if len(refseq) > 3:
             pad = 3 - (len(refseq) % 3)
             refseq += '-' * pad
@@ -34,6 +35,7 @@ class CodonAligner(HyphyInterface):
             pad = 0
             scoremod = 0.
 
+        # compute next power of two size string for the output
         outlen = (len(refseq) + 1) * len(seqs)
         outlen = ceil(log(outlen, 2))
         outlen = int(pow(2, outlen))
