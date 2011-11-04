@@ -8,6 +8,9 @@ from Bio.Alphabet import generic_dna
 from _hyphyinterface import HyphyInterface
 
 
+__all__ = ['CodonAligner']
+
+
 class CodonAligner(HyphyInterface):
 
     def __init__(self, batchfile=None):
