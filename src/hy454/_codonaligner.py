@@ -29,6 +29,7 @@ class CodonAligner(HyphyInterface):
         # otherwise the hyphy codon alignment algo barfs 
         if len(refseq) > 3:
             pad = 3 - (len(refseq) % 3)
+            pad = 0 if pad == 3 else pad
             refseq += '-' * pad
             scoremod = float(len(refseq)) / (len(refseq) - pad)
         else:

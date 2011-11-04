@@ -5,6 +5,8 @@ from copy import deepcopy
 from math import ceil, log
 from re import compile as re_compile
 
+# from fakemp import FakePool
+
 from Bio import SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import generic_dna
@@ -58,11 +60,11 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def _cdnaln_wrkr(refseq, seqs):
+def _cdnaln_wrkr(refseq, seqs, quiet=True):
     worker = CodonAligner()
     refseqstr = str(refseq)
-    forward, scores = worker.align(refseqstr, [str(s) for s in seqs])
-    revcom, _scores = worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs])
+    forward, scores = worker.align(refseqstr, [str(s) for s in seqs], quiet)
+    revcom, _scores = worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet)
     assert(len(forward) == len(scores) == len(revcom) == len(_scores))
     return [forward[i] if scores[i] >= _scores[i] else revcom[i] for i in xrange(len(forward))]
 
@@ -74,7 +76,6 @@ def align_to_refseq(refseq, seqrecords):
     seqs_per_proc = int(ceil(float(len(seqrecords)) / num_cpus))
 
     numseqs = len(seqrecords)
-    refseqstr = str(refseq.seq)
 
     results = [None] * num_cpus
 
@@ -82,7 +83,7 @@ def align_to_refseq(refseq, seqrecords):
         l = i * seqs_per_proc
         u = min(numseqs, l + seqs_per_proc)
         seqs = [s.seq for s in seqrecords[l:u]]
-        results = pool.apply_async(_cdnaln_wrkr, (refseq, seqs))
+        results[i] = pool.apply_async(_cdnaln_wrkr, (refseq.seq, seqs))
 
     # deepcopy the seqrecords so that we can change their sequences later
     alignrecords = deepcopy(seqrecords)

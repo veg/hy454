@@ -257,7 +257,7 @@ for (_cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1)
     {
         _cdnaln_outstr * ",";
     }
-    fprintf(stdout, (_cdnaln_alnseqs[0])[1] + "\n" + (_cdnaln_alnseqs[0])[2] + "\n");
+    // fprintf(stdout, (_cdnaln_alnseqs[0])[1] + "\n" + (_cdnaln_alnseqs[0])[2] + "\n");
     _cdnaln_outstr * _cdnaln_cleanseqs["seq"]; // (_cdnaln_alnseqs[0])[2]; //
 }
 
