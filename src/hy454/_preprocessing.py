@@ -1,11 +1,12 @@
 
-import multiprocessing as mp
-
 from copy import deepcopy
 from math import ceil, log
-from re import compile as re_compile
+from multiprocessing import cpu_count, current_process
+from re import compile as re_compile, I as re_I
+from sys import exc_info, exit as sys_exit
+from types import ListType
 
-# from fakemp import FakePool
+from fakemp import create_pool
 
 from Bio import SeqIO
 from Bio.Align import MultipleSeqAlignment
@@ -25,9 +26,9 @@ __all__ = [
 
 
 def preprocess_seqrecords(seqrecords):
-    remove_unknown = re_compile(r'[^a-zA-Z]')
-    strip_front = re_compile(r'^[nN]+')
-    strip_rear = re_compile(r'[nN]+$')
+    remove_unknown = re_compile(r'[^ACGTUWSMKRYBDHVN]', re_I)
+    strip_front = re_compile(r'^[N]+', re_I)
+    strip_rear = re_compile(r'[N]+$', re_I)
 
     for record in seqrecords:
         seq = str(record.seq)
@@ -61,29 +62,68 @@ def determine_refseq(seqrecords, mode):
 
 
 def _cdnaln_wrkr(refseq, seqs, quiet=True):
-    worker = CodonAligner()
-    refseqstr = str(refseq)
-    forward, scores = worker.align(refseqstr, [str(s) for s in seqs], quiet)
-    revcom, _scores = worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet)
-    assert(len(forward) == len(scores) == len(revcom) == len(_scores))
-    return [forward[i] if scores[i] >= _scores[i] else revcom[i] for i in xrange(len(forward))]
+    try:
+        worker = CodonAligner()
+        refseqstr = str(refseq)
+        forward, scores = worker.align(refseqstr, [str(s) for s in seqs], quiet)
+        revcom, _scores = worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet)
+        assert(len(forward) == len(scores) == len(revcom) == len(_scores))
+        return [forward[i] if scores[i] >= _scores[i] else revcom[i] for i in xrange(len(forward))]
+    except KeyboardInterrupt:
+        return KeyboardInterrupt
+    except:
+        return exc_info()[1]
 
 
 def align_to_refseq(refseq, seqrecords):
-    num_cpus = mp.cpu_count()
-    pool = mp.Pool(num_cpus)
+    num_cpus = cpu_count()
 
     seqs_per_proc = int(ceil(float(len(seqrecords)) / num_cpus))
 
     numseqs = len(seqrecords)
 
-    results = [None] * num_cpus
+    try:
+        results = [None] * num_cpus
+        do_parts = xrange(num_cpus)
+        attempts = 3
+        for _ in xrange(attempts):
+            pool = create_pool(refseq.seq)
 
-    for i in xrange(num_cpus):
-        l = i * seqs_per_proc
-        u = min(numseqs, l + seqs_per_proc)
-        seqs = [s.seq for s in seqrecords[l:u]]
-        results[i] = pool.apply_async(_cdnaln_wrkr, (refseq.seq, seqs))
+            for i in do_parts:
+                l = i * seqs_per_proc
+                u = min(numseqs, l + seqs_per_proc)
+                seqs = [s.seq for s in seqrecords[l:u]]
+                results[i] = pool.apply_async(_cdnaln_wrkr, (refseq.seq, seqs))
+
+            pool.close()
+            pool.join()
+
+            for i in do_parts:
+                results[i] = results[i].get(0xFFFF)
+
+            if any([isinstance(r, KeyboardInterrupt) for r in results]):
+                raise KeyboardInterrupt
+            elif all([isinstance(r, ListType) for r in results]):
+                break
+            else:
+                do_parts = [i for i, r in enumerate(results) if not isinstance(r, ListType)]
+
+        excs = [e for e in results if isinstance(e, Exception)]
+        if len(excs):
+            raise excs[0]
+
+        if not all([isinstance(r, ListType) for r in results]):
+            raise RuntimeError("Random and unknown weirdness happened while trying to farm out work to child processes")
+
+    except KeyboardInterrupt, e:
+        if pool is not None:
+            pool.terminate()
+            pool.join()
+        if current_process().daemon:
+            return e
+        else:
+            print 'caught ^C (keyboard interrupt), exiting ...'
+            sys_exit(-1)
 
     # deepcopy the seqrecords so that we can change their sequences later
     alignrecords = deepcopy(seqrecords)
@@ -91,8 +131,7 @@ def align_to_refseq(refseq, seqrecords):
     for i in xrange(num_cpus):
         l = i * seqs_per_proc
         u = min(numseqs, l + seqs_per_proc)
-        seqstrs = results[i].get(0xFF)
         for j, k in enumerate(xrange(l, u)):
-            alignrecords[k].seq = Seq(seqstrs[j], generic_dna)
+            alignrecords[k].seq = Seq(results[i][j], generic_dna)
 
     return MultipleSeqAlignment(alignrecords)
