@@ -68,7 +68,7 @@ class HyphyInterface(object):
                 # dead code, we assume
                 assert(0)
         else:
-            raise RuntimeError("Cast failed in HyphyInterface, assume an incorrect typ was supplied for variable `%s'" % variable)
+            raise RuntimeError("Cast failed in HyphyInterface, assume an incorrect type was supplied for variable `%s'" % variable)
 
     def queuecmd(self, execstr):
         self._execstr += execstr
