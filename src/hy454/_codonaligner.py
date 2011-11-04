@@ -14,7 +14,7 @@ class CodonAligner(HyphyInterface):
         if batchfile is None:
             batchfile = join(
                     split(abspath(__file__))[0],
-                    'res', 'hyphy', 'codonaligner.bf'
+                    'hyphy', 'codonaligner.bf'
             )
         if not exists(batchfile):
             raise ValueError("Invalid batchfile `%s', it doesn't exist!" % batchfile)
