@@ -4,7 +4,7 @@ from math import ceil, log
 from multiprocessing import cpu_count, current_process
 from operator import itemgetter
 from re import compile as re_compile, I as re_I
-from sys import exc_info, exit as sys_exit
+from sys import exc_info, exit as sys_exit, float_info
 from types import ListType
 
 from fakemp import create_pool
@@ -67,21 +67,20 @@ def _cdnaln_wrkr(refseq, seqs, checkframes=xrange(3), quiet=True):
         worker = CodonAligner()
         refseqstr = str(refseq)
         bestseqs = [None] * len(seqs)
-        bestscores = [0.] * len(seqs)
+        bestscores = [-float_info.max] * len(seqs)
         for frame in checkframes:
             # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]
             # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
             # and these are zipped to their revcom+score so that we can easily take a max later 
             zipped = zip(
-                zip(*worker.align(refseqstr, [str(s[frame:]) for s in seqs], quiet)),
-                zip(*worker.align(refseqstr, [str(s[frame:].reverse_complement()) for s in seqs], quiet))
+                zip(*worker.align(refseqstr, [str(s)[frame:] for s in seqs], quiet)),
+                zip(*worker.align(refseqstr, [str(s.reverse_complement())[frame:] for s in seqs], quiet))
             )
-            print zipped
             for i in xrange(len(seqs)):
                 seq, score = max(zipped[i], key=itemgetter(1))
-                if score > bestscore[i]:
+                if score > bestscores[i]:
                     bestseqs[i] = seq
-                    bestscore[i] = score
+                    bestscores[i] = score
         return bestseqs
     except KeyboardInterrupt:
         return KeyboardInterrupt
