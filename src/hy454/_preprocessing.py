@@ -2,6 +2,7 @@
 from copy import deepcopy
 from math import ceil, log
 from multiprocessing import cpu_count, current_process
+from operator import itemgetter
 from re import compile as re_compile, I as re_I
 from sys import exc_info, exit as sys_exit
 from types import ListType
@@ -10,7 +11,7 @@ from fakemp import create_pool
 
 from Bio import SeqIO
 from Bio.Align import MultipleSeqAlignment
-from Bio.Alphabet import generic_dna
+from Bio.Alphabet import generic_nucleotide
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
@@ -36,7 +37,7 @@ def preprocess_seqrecords(seqrecords):
         seq = strip_front.sub('', seq)
         seq = strip_rear.sub('', seq)
 
-        record.seq = Seq(seq, generic_dna)
+        record.seq = Seq(seq, generic_nucleotide)
 
     return
 
@@ -48,7 +49,7 @@ def determine_refseq(seqrecords, mode):
 
     if mode is CUSTOM:
         seq = raw_input("Input the entire reference sequence without newlines :: ")
-        refseq = SeqRecord(Seq(seq, generic_dna),
+        refseq = SeqRecord(Seq(seq, generic_nucleotide),
                 id="ref", name="reference",
                 description="Custom reference sequence")
     elif mode is FIRST:
@@ -61,21 +62,33 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def _cdnaln_wrkr(refseq, seqs, quiet=True):
+def _cdnaln_wrkr(refseq, seqs, checkframes=xrange(3), quiet=True):
     try:
         worker = CodonAligner()
         refseqstr = str(refseq)
-        forward, scores = worker.align(refseqstr, [str(s) for s in seqs], quiet)
-        revcom, _scores = worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet)
-        assert(len(forward) == len(scores) == len(revcom) == len(_scores))
-        return [forward[i] if scores[i] >= _scores[i] else revcom[i] for i in xrange(len(forward))]
+        bestseqs = [None] * len(seqs)
+        bestscores = [0.] * len(seqs)
+        for frame in checkframes:
+            # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]
+            # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
+            # and these are zipped to their revcom+score so that we can easily take a max later 
+            zipped = zip(
+                zip(worker.align(refseqstr, [str(s[frame:]) for s in seqs], quiet)),
+                zip(worker.align(refseqstr, [str(s[frame:].reverse_complement()) for s in seqs], quiet))
+            )
+            for i in xrange(len(seqs)):
+                seq, score = max(zipped[i], key=itemgetter(1))
+                if score > bestscore[i]:
+                    bestseqs[i] = seq
+                    bestscore[i] = score
+        return bestseqs
     except KeyboardInterrupt:
         return KeyboardInterrupt
     except:
         return exc_info()[1]
 
 
-def align_to_refseq(refseq, seqrecords):
+def align_to_refseq(refseq, seqrecords, checkframes=xrange(3)):
     num_cpus = cpu_count()
 
     seqs_per_proc = int(ceil(float(len(seqrecords)) / num_cpus))
@@ -93,7 +106,7 @@ def align_to_refseq(refseq, seqrecords):
                 l = i * seqs_per_proc
                 u = min(numseqs, l + seqs_per_proc)
                 seqs = [s.seq for s in seqrecords[l:u]]
-                results[i] = pool.apply_async(_cdnaln_wrkr, (refseq.seq, seqs))
+                results[i] = pool.apply_async(_cdnaln_wrkr, (refseq.seq, seqs, checkframes))
 
             pool.close()
             pool.join()
@@ -132,6 +145,6 @@ def align_to_refseq(refseq, seqrecords):
         l = i * seqs_per_proc
         u = min(numseqs, l + seqs_per_proc)
         for j, k in enumerate(xrange(l, u)):
-            alignrecords[k].seq = Seq(results[i][j], generic_dna)
+            alignrecords[k].seq = Seq(results[i][j], generic_nucleotide)
 
     return MultipleSeqAlignment(alignrecords)

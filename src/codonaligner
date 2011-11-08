@@ -22,7 +22,7 @@ def main(argv=None):
     refseq = seqrecords[0]
     seqrecords = seqrecords[1:]
 
-    msa = align_to_refseq(refseq, seqrecords)
+    msa = align_to_refseq(refseq, seqrecords, xrange(1))
 
     AlignIO.write(msa, sys.stdout, "fasta")
 

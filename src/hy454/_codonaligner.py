@@ -3,7 +3,7 @@ from math import ceil, log
 from os.path import abspath, exists, join, split
 from sys import stderr
 
-from Bio.Alphabet import generic_dna
+from Bio.Alphabet import generic_nucleotide
 
 from _hyphyinterface import HyphyInterface
 
