@@ -73,9 +73,10 @@ def _cdnaln_wrkr(refseq, seqs, checkframes=xrange(3), quiet=True):
             # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
             # and these are zipped to their revcom+score so that we can easily take a max later 
             zipped = zip(
-                zip(worker.align(refseqstr, [str(s[frame:]) for s in seqs], quiet)),
-                zip(worker.align(refseqstr, [str(s[frame:].reverse_complement()) for s in seqs], quiet))
+                zip(*worker.align(refseqstr, [str(s[frame:]) for s in seqs], quiet)),
+                zip(*worker.align(refseqstr, [str(s[frame:].reverse_complement()) for s in seqs], quiet))
             )
+            print zipped
             for i in xrange(len(seqs)):
                 seq, score = max(zipped[i], key=itemgetter(1))
                 if score > bestscore[i]:
