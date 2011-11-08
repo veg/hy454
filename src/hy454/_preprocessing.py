@@ -62,33 +62,26 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def _cdnaln_wrkr(refseq, seqs, checkframes=xrange(3), quiet=True):
+def _cdnaln_wrkr(refseq, seqs, quiet=True):
     try:
         worker = CodonAligner()
         refseqstr = str(refseq)
-        bestseqs = [None] * len(seqs)
-        bestscores = [-float_info.max] * len(seqs)
-        for frame in checkframes:
-            # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]
-            # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
-            # and these are zipped to their revcom+score so that we can easily take a max later 
-            zipped = zip(
-                zip(*worker.align(refseqstr, [str(s)[frame:] for s in seqs], quiet)),
-                zip(*worker.align(refseqstr, [str(s.reverse_complement())[frame:] for s in seqs], quiet))
-            )
-            for i in xrange(len(seqs)):
-                seq, score = max(zipped[i], key=itemgetter(1))
-                if score > bestscores[i]:
-                    bestseqs[i] = seq
-                    bestscores[i] = score
-        return bestseqs
+        # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]
+        # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
+        # and these are zipped to their revcom+score so that we can easily take a max later 
+        zipped = zip(
+            zip(*worker.align(refseqstr, [str(s)[frame:] for s in seqs], quiet)),
+            zip(*worker.align(refseqstr, [str(s.reverse_complement())[frame:] for s in seqs], quiet))
+        )
+        # itemgetter(1) is the score, [0] is the seq
+        return [max(z, key=itemgetter(1))[0] for z in zipped]
     except KeyboardInterrupt:
         return KeyboardInterrupt
     except:
         return exc_info()[1]
 
 
-def align_to_refseq(refseq, seqrecords, checkframes=xrange(3)):
+def align_to_refseq(refseq, seqrecords):
     num_cpus = cpu_count()
 
     seqs_per_proc = int(ceil(float(len(seqrecords)) / num_cpus))
@@ -106,7 +99,7 @@ def align_to_refseq(refseq, seqrecords, checkframes=xrange(3)):
                 l = i * seqs_per_proc
                 u = min(numseqs, l + seqs_per_proc)
                 seqs = [s.seq for s in seqrecords[l:u]]
-                results[i] = pool.apply_async(_cdnaln_wrkr, (refseq.seq, seqs, checkframes))
+                results[i] = pool.apply_async(_cdnaln_wrkr, (refseq.seq, seqs))
 
             pool.close()
             pool.join()
