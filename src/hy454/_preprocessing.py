@@ -53,11 +53,10 @@ def determine_refseq(seqrecords, mode):
                 id="ref", name="reference",
                 description="Custom reference sequence")
     elif mode is FIRST:
-        refseq = seqrecords[0]
-        seqrecords = seqrecords[1:]
+        refseq = seqrecords.pop(0)
     elif mode is LONGEST:
-        idx, refseq = max(enumerate(seqrecords), key=lambda r: len(r.seq))
-        seqrecords = [r for i, r in enumerate(seqrecords) if i != idx]
+        idx, refseq = max(enumerate(seqrecords), key=lambda r: len(r[1].seq))
+        seqrecords.pop(idx)
 
     return refseq, seqrecords
 
