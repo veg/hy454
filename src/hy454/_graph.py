@@ -27,6 +27,6 @@ def graph_coverage(refseq, alignment, filename=None, fmt='pdf'):
     plt.ylabel('Coverage (%)')
     plt.xticks(np.arange(0, N+1, 20))
     plt.yticks(np.arange(0, 101, 20))
-    plt.savefig(filename, fmt)
+    plt.savefig(filename, format=fmt)
 
     return filename
