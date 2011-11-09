@@ -17,7 +17,7 @@ def graph_coverage(refseq, alignment, filename=None, fmt='pdf'):
 
     N = len(refseq)
     frac = 1. / len(alignment)
-    height = np.zeros((N,), dtype=int)
+    height = np.zeros((N,), dtype=float)
     sep = int(N / 5 / 25) * 25
 
     for i in xrange(N):
