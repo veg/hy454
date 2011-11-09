@@ -39,7 +39,7 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     ax1.set_ylabel('Coverage')
     # we don't need to set the xticks here because we do it for ax2 
     # ax1.set_xticks(xticks)
-    ax1.set_yticks(np.arange(0.0, 1.1, 0.2))
+    ax1.set_yticks(np.arange(0, 1.1, 0.2))
 
     ax2 = ax1.twinx()
     ax2.set_ylabel('# of sequences', rotation=270.)
