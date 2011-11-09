@@ -5,6 +5,8 @@ import numpy as np
 from os import close
 from tempfile import mkstemp
 
+from Bio.Motif import Motif
+
 
 __all__ = ['graph_coverage']
 
@@ -28,8 +30,7 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     yticks = np.arange(ysep, M+ysep, ysep)
     yticks[-1] = M
 
-    for i in xrange(N):
-        height[i] = sum([frac for s in alignment if s.seq[i] != _GAP])
+    heights = [sum([frac for p in msa[:, i] if p != _GAP]) for i in xrange(N)]
 
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
@@ -49,3 +50,17 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     fig.savefig(filename, format=fmt)
 
     return filename
+
+
+def graph_logo(alignment, columns, filename, fmt='pdf'):
+    if filename is None:
+        fd, filename = mkstemp(); close(fd)
+
+    M = len(alignment)
+    N = len(columns)
+
+    motif = Motif(alphabet=alignment._alphabet)
+
+    for seq in alignment:
+        instance = ''.join([seq[i] for i in columns])
+        motif.add_instance(instance)
