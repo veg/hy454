@@ -12,6 +12,6 @@ setup(name='hy454',
       packages=['hy454'],
       package_dir={'hy454': 'src/hy454'},
       package_data={'hy454': ['hyphy/*.bf']},
-      data_files=[('/usr/local/bin', ['src/codonaligner', 'src/graphcoverage'])],
+      data_files=[('/usr/local/bin', ['src/codonaligner', 'src/coveragegrapher'])],
       requires=['Bio', 'fakemp', 'matplotlib']
      )
