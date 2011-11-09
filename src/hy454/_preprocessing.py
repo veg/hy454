@@ -7,7 +7,7 @@ from re import compile as re_compile, I as re_I
 from sys import exc_info, exit as sys_exit, float_info
 from types import ListType
 
-from fakemp import create_pool
+from fakemp import farmout, farmworker
 
 from Bio import SeqIO
 from Bio.Align import MultipleSeqAlignment
@@ -62,23 +62,22 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def _cdnaln_wrkr(refseq, seqs, quiet=True):
-    try:
-        worker = CodonAligner()
-        refseqstr = str(refseq)
-        # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]
-        # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
-        # and these are zipped to their revcom+score so that we can easily take a max later 
-        zipped = zip(
-            zip(*worker.align(refseqstr, [str(s) for s in seqs], quiet)),
-            zip(*worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet))
-        )
-        # itemgetter(1) is the score, [0] is the seq
-        return [max(z, key=itemgetter(1))[0] for z in zipped]
-    except KeyboardInterrupt:
-        return KeyboardInterrupt
-    except:
-        return exc_info()[1]
+def _codonaligner(refseq, seqs, quiet=True):
+    worker = CodonAligner()
+    refseqstr = str(refseq)
+    # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]
+    # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
+    # and these are zipped to their revcom+score so that we can easily take a max later 
+    zipped = zip(
+        zip(*worker.align(refseqstr, [str(s) for s in seqs], quiet)),
+        zip(*worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet))
+    )
+    # itemgetter(1) is the score, [0] is the seq
+    return [max(z, key=itemgetter(1))[0] for z in zipped]
+
+
+def _farmer(refseq, seqs, quiet=True):
+    return farmworker(_codonaligner, refseq, seqs, quiet)
 
 
 def align_to_refseq(refseq, seqrecords):
@@ -88,48 +87,13 @@ def align_to_refseq(refseq, seqrecords):
 
     numseqs = len(seqrecords)
 
-    try:
-        results = [None] * num_cpus
-        do_parts = xrange(num_cpus)
-        attempts = 3
-        for _ in xrange(attempts):
-            pool = create_pool(refseq.seq)
-
-            for i in do_parts:
-                l = i * seqs_per_proc
-                u = min(numseqs, l + seqs_per_proc)
-                seqs = [s.seq for s in seqrecords[l:u]]
-                results[i] = pool.apply_async(_cdnaln_wrkr, (refseq.seq, seqs))
-
-            pool.close()
-            pool.join()
-
-            for i in do_parts:
-                results[i] = results[i].get(0xFFFF)
-
-            if any([isinstance(r, KeyboardInterrupt) for r in results]):
-                raise KeyboardInterrupt
-            elif all([isinstance(r, ListType) for r in results]):
-                break
-            else:
-                do_parts = [i for i, r in enumerate(results) if not isinstance(r, ListType)]
-
-        excs = [e for e in results if isinstance(e, Exception)]
-        if len(excs):
-            raise excs[0]
-
-        if not all([isinstance(r, ListType) for r in results]):
-            raise RuntimeError("Random and unknown weirdness happened while trying to farm out work to child processes")
-
-    except KeyboardInterrupt, e:
-        if pool is not None:
-            pool.terminate()
-            pool.join()
-        if current_process().daemon:
-            return e
-        else:
-            print 'caught ^C (keyboard interrupt), exiting ...'
-            sys_exit(-1)
+    results = farmout(
+        num_cpus,
+        lambda i: (refseq.seq, [s.seq for s in seqrecords[(i*seqs_per_proc):min(numseqs, (i+1)*seqs_per_proc)]]),
+        _farmer,
+        lambda r: isinstance(r, ListType),
+        attempts=3
+    )
 
     # deepcopy the seqrecords so that we can change their sequences later
     alignrecords = deepcopy(seqrecords)
