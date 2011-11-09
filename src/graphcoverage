@@ -1,0 +1,36 @@
+#!/usr/bin/env python2.7
+
+import sys
+
+from os import getcwd
+from os.path import exists, join
+
+from Bio import SeqIO
+
+from hy454 import align_to_refseq, graph_coverage
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    if len(argv) != 2 or not exists(argv[0]):
+        print >> sys.stderr, 'usage: graphcoverage FASTAFILE OUTPUTFILE'
+        sys.exit(-1)
+
+    with open(argv[0]) as fh:
+        seqrecords = [r for r in SeqIO.parse(fh, 'fasta')]
+
+    refseq = seqrecords.pop(0)
+
+    msa = align_to_refseq(refseq, seqrecords)
+
+    filename = join(getcwd(), argv[1])
+
+    graph_coverage(refseq, msa, filename, 'pdf')
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

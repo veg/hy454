@@ -19,8 +19,7 @@ def main(argv=None):
     with open(argv[0], 'r') as fh:
         seqrecords = [r for r in SeqIO.parse(fh, "fasta")]
 
-    refseq = seqrecords[0]
-    seqrecords = seqrecords[1:]
+    refseq = seqrecords.pop(0)
 
     msa = align_to_refseq(refseq, seqrecords)
 
