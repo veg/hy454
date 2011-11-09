@@ -33,7 +33,7 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     yticks = np.arange(ysep, M+ysep, ysep)
     yticks[-1] = M
 
-    heights = [sum([frac for p in alignment[:, i] if p != _GAP]) for i in xrange(N)]
+    height = [sum([frac for p in alignment[:, i] if p != _GAP]) for i in xrange(N)]
 
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
@@ -50,6 +50,14 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     ax2.set_xticks(xticks)
     ax2.set_yticks(yticks)
 
+    # remove the upper ticks 
+    for tick in ax1.xaxis.get_major_ticks() + ax2.xaxis.get_major_ticks():
+        tick.tick2On = False
+
+    # remove the upper axis border
+    ax1.spines['top'].cla() # set_linewidth(0)
+    ax2.spines['top'].cla() # set_linewidth(0)
+
     fig.savefig(filename, format=fmt)
 
     return filename
@@ -64,6 +72,19 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
 
     motif = Motif(alphabet=alignment._alphabet)
 
-    for seq in alignment:
-        instance = ''.join([seq[i] for i in columns])
-        motif.add_instance(instance)
+    instances = [''.join(z) for z in zip(*[alignment[:, i] for i in columns])]
+    for instance in instances:
+        motif.add_instance(instances)
+
+    pwm = motif.pwm()
+
+    # heuristic to determine whether nucleotide or protein alphabet
+    # need to use either base 4 or 20 depending 
+    s = 4 if len(pwm[0]) < 20 else 20
+
+    # compute the information content at each position 
+    maxbits = np.log2(s)
+    e_n = float(s - 1) / (2. * np.log(2) * M)
+    R_i = maxbits * np.ones((N,), dtype=float)
+    R_i -= [-sum([v * np.log2(v) for _, v in pwm[i].iteritmes()]) for i in xrange(N)]
+    R_i -= e_n
