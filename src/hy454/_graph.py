@@ -30,7 +30,7 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     yticks = np.arange(ysep, M+ysep, ysep)
     yticks[-1] = M
 
-    heights = [sum([frac for p in msa[:, i] if p != _GAP]) for i in xrange(N)]
+    heights = [sum([frac for p in alignment[:, i] if p != _GAP]) for i in xrange(N)]
 
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
