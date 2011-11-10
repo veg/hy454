@@ -1,0 +1,50 @@
+#!/usr/bin/env python2.7
+
+import sys
+
+from os import getcwd
+from os.path import exists, join
+
+from Bio import AlignIO
+
+from hy454 import graph_logo
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    if len(argv) != 3 or not exists(argv[0]):
+        print >> sys.stderr, 'usage: seqlogo MSAFILE COLSPEC OUTPUTFILE'
+        sys.exit(-1)
+
+    try:
+        colspec = argv[1]
+        if ':' in colspec:
+            xyz = [int(v) for v in colspec.split(':')]
+            xyz[1] += 1
+            if len(xyz) in (2, 3):
+                colspec = xrange(*xyz)
+            else:
+                raise ValueError()
+        elif ',' in colspec:
+            colspec = [int(v) for v in colspec.split(',')]
+        else:
+            colspec = [int(colspec)]
+    except:
+        print >> sys.stderr, 'usage: seqlogo MSAFILE COLSPEC OUTPUTFILE'
+        print >> sys.stderr, 'COLSPEC must be either a comma-delimited list of 1-indices or a colon-delimited range specification start:stop[:skip]'
+        sys.exit(-1)
+
+    filename = join(getcwd(), argv[2])
+
+    with open(argv[0]) as fh:
+        msa = AlignIO.read(fh, 'fasta')
+
+    graph_logo(msa, colspec, filename, 'pdf')
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
