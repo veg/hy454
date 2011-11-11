@@ -49,7 +49,6 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     ax1 = fig.add_subplot(111)
 
     ax1.fill_between(np.arange(1, N+1), height, edgecolor=_GREY, facecolor=_GREY, alpha=0.5)
-    # ax1.bar(np.arange(1, N+1), height, width=1., color='black', edgecolor='black')
     ax1.set_xlabel('Reference sequence position')
     ax1.set_ylabel('Coverage')
     # we don't need to set the xticks here because we do it for ax2 
