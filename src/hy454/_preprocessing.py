@@ -47,14 +47,14 @@ def determine_refseq(seqrecords, mode):
     if mode not in xrange(3):
         raise ValueError("mode must be one of CUSTOM, FIRST, or LONGEST")
 
-    if mode is CUSTOM:
+    if mode == CUSTOM:
         seq = raw_input("Input the entire reference sequence without newlines :: ")
         refseq = SeqRecord(Seq(seq, generic_nucleotide),
                 id="ref", name="reference",
                 description="Custom reference sequence")
-    elif mode is FIRST:
+    elif mode == FIRST:
         refseq = seqrecords.pop(0)
-    elif mode is LONGEST:
+    elif mode == LONGEST:
         idx, refseq = max(enumerate(seqrecords), key=lambda r: len(r[1].seq))
         seqrecords.pop(idx)
 
