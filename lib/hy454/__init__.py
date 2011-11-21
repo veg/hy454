@@ -1,4 +1,6 @@
 
+__version__ = '0.1.0'
+
 from _annotate import *
 from _codonaligner import *
 from _common import *
