@@ -15,7 +15,7 @@ setup(name='hy454',
       data_files=[('/usr/local/bin', [
             'src/codonaligner',
             'src/coveragegrapher',
-            'src/seqlogo'
+          # 'src/seqlogo'
       ])],
       requires=['Bio', 'fakemp', 'hypy', 'matplotlib', 'numpy']
      )
