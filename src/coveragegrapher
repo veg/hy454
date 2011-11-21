@@ -7,7 +7,7 @@ from os.path import exists, join
 
 from Bio import AlignIO
 
-from hy454 import align_to_refseq, graph_coverage
+from hy454 import graph_coverage
 
 
 def main(argv=None):

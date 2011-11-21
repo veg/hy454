@@ -62,6 +62,8 @@ def determine_refseq(seqrecords, mode):
 
 
 def _codonaligner(refseq, seqs, quiet=True):
+    if not len(seqs):
+        return []
     worker = CodonAligner()
     refseqstr = str(refseq)
     # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]

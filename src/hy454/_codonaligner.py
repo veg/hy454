@@ -25,6 +25,10 @@ class CodonAligner(HyphyInterface):
         super(CodonAligner, self).__init__(batchfile, 1)
 
     def align(self, refseq, seqs, quiet=True):
+        # if we have no sequences, abort early to prevent later errors
+        if not len(seqs):
+            return [], []
+
         # pad the reference to the nearest codon,
         # otherwise the hyphy codon alignment algo barfs 
         if len(refseq) > 3:
