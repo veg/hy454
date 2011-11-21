@@ -5,7 +5,6 @@ from _common import *
 from _compensatory import *
 from _fel import *
 from _graph import *
-from _hyphyinterface import *
 from _mdr_variants import *
 from _mpi import *
 from _orflist import *
@@ -24,7 +23,6 @@ __all__ += _common.__all__
 __all__ += _compensatory.__all__
 __all__ += _fel.__all__
 __all__ += _graph.__all__
-__all__ += _hyphyinterface.__all__
 __all__ += _mdr_variants.__all__
 __all__ += _mpi.__all__
 __all__ += _orflist.__all__
