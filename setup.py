@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 
+import sys
+
+from os.path import abspath, join, split
 from setuptools import setup
 
+sys.path.insert(0, join(split(abspath(__file__))[0], 'lib'))
+from hy454 import __version__ as _hy454_version
+
 setup(name='hy454',
-      version='0.1.0',
+      version=_hy454_version,
       description='454 UDS analysis tools',
       author='N Lance Hepler',
       author_email='nlhepler@gmail.com',
       url='http://github.com/veg/hy454',
       license='GNU GPL version 3',
       packages=['hy454'],
-      package_dir={'hy454': 'src/hy454'},
+      package_dir={'hy454': 'lib/hy454'},
       package_data={'hy454': ['hyphy/*.bf']},
       data_files=[('/usr/local/bin', [
-            'src/codonaligner',
-            'src/coveragegrapher',
-            'src/seqlogo'
+            'bin/codonaligner',
+            'bin/coveragegrapher',
+          # 'bin/seqlogo'
       ])],
-      requires=['Bio', 'fakemp', 'matplotlib', 'numpy']
+      requires=['Bio', 'fakemp', 'hypy', 'matplotlib', 'numpy']
      )

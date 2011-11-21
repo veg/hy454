@@ -5,7 +5,7 @@ from sys import stderr
 
 from Bio.Alphabet import generic_nucleotide
 
-from _hyphyinterface import HyphyInterface
+from hypy import HyphyInterface
 
 
 __all__ = ['CodonAligner']
