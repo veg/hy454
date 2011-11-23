@@ -77,10 +77,6 @@ def _codonaligner(refseq, seqs, quiet=True):
     return [max(z, key=itemgetter(1))[0] for z in zipped]
 
 
-def _worker(refseq, seqs, quiet=True):
-    return farmworker(_codonaligner, refseq, seqs, quiet)
-
-
 def align_to_refseq(refseq, seqrecords):
     num_cpus = cpu_count()
 
@@ -89,10 +85,10 @@ def align_to_refseq(refseq, seqrecords):
     numseqs = len(seqrecords)
 
     results = farmout(
-        num_cpus,
-        lambda i: (refseq.seq, [s.seq for s in seqrecords[(i*seqs_per_proc):min(numseqs, (i+1)*seqs_per_proc)]]),
-        _worker,
-        lambda r: isinstance(r, ListType),
+        num=num_cpus,
+        setup=lambda i: (_codonaligner, refseq.seq, [s.seq for s in seqrecords[(i*seqs_per_proc):min(numseqs, (i+1)*seqs_per_proc)]]),
+        worker=farmworker,
+        isresult=lambda r: isinstance(r, ListType),
         attempts=3
     )
 
