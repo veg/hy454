@@ -53,9 +53,9 @@ class CodonAligner(HyphyInterface):
 
         if not quiet:
             if self.stdout != '':
-                print >> stderr, self.stdout
+                print(self.stdout, file=stderr)
             if self.warnings != '':
-                print >> stderr, self.warnings
+                print(self.warnings, file=stderr)
 
         if self.stderr != '':
             raise RuntimeError(self.stderr)
