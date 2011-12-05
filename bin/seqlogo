@@ -1,4 +1,6 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.2
+
+from __future__ import division, print_function
 
 import sys
 
@@ -15,7 +17,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     if len(argv) != 3 or not exists(argv[0]):
-        print >> sys.stderr, 'usage: seqlogo MSAFILE COLSPEC OUTPUTFILE'
+        print('usage: seqlogo MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
         sys.exit(-1)
 
     try:
@@ -24,7 +26,7 @@ def main(argv=None):
             xyz = [int(v) for v in colspec.split(':')]
             xyz[1] += 1
             if len(xyz) in (2, 3):
-                colspec = xrange(*xyz)
+                colspec = range(*xyz)
             else:
                 raise ValueError()
         elif ',' in colspec:
@@ -32,8 +34,8 @@ def main(argv=None):
         else:
             colspec = [int(colspec)]
     except:
-        print >> sys.stderr, 'usage: seqlogo MSAFILE COLSPEC OUTPUTFILE'
-        print >> sys.stderr, 'COLSPEC must be either a comma-delimited list of 1-indices or a colon-delimited range specification start:stop[:skip]'
+        print('usage: seqlogo MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
+        print('COLSPEC must be either a comma-delimited list of 1-indices or a colon-delimited range specification start:stop[:skip]', file=sys.stderr)
         sys.exit(-1)
 
     filename = join(getcwd(), argv[2])

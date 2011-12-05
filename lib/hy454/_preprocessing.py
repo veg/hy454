@@ -1,11 +1,11 @@
 
 from copy import deepcopy
+
 from math import ceil, log
 from multiprocessing import cpu_count, current_process
 from operator import itemgetter
 from re import compile as re_compile, I as re_I
 from sys import exc_info, exit as sys_exit, float_info
-from types import ListType
 
 from fakemp import farmout, farmworker
 
@@ -15,7 +15,7 @@ from Bio.Alphabet import generic_nucleotide
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from _codonaligner import CodonAligner
+from ._codonaligner import CodonAligner
 
 
 __all__ = [
@@ -42,13 +42,13 @@ def preprocess_seqrecords(seqrecords):
     return
 
 
-CUSTOM, FIRST, LONGEST = range(3)
+CUSTOM, FIRST, LONGEST = list(range(3))
 def determine_refseq(seqrecords, mode):
-    if mode not in xrange(3):
+    if mode not in range(3):
         raise ValueError("mode must be one of CUSTOM, FIRST, or LONGEST")
 
     if mode == CUSTOM:
-        seq = raw_input("Input the entire reference sequence without newlines :: ")
+        seq = input("Input the entire reference sequence without newlines :: ")
         refseq = SeqRecord(Seq(seq, generic_nucleotide),
                 id="ref", name="reference",
                 description="Custom reference sequence")
@@ -88,17 +88,17 @@ def align_to_refseq(refseq, seqrecords):
         num=num_cpus,
         setup=lambda i: (_codonaligner, refseq.seq, [s.seq for s in seqrecords[(i*seqs_per_proc):min(numseqs, (i+1)*seqs_per_proc)]]),
         worker=farmworker,
-        isresult=lambda r: isinstance(r, ListType),
+        isresult=lambda r: isinstance(r, list),
         attempts=3
     )
 
     # deepcopy the seqrecords so that we can change their sequences later
     alignrecords = deepcopy(seqrecords)
 
-    for i in xrange(num_cpus):
+    for i in range(num_cpus):
         l = i * seqs_per_proc
         u = min(numseqs, l + seqs_per_proc)
-        for j, k in enumerate(xrange(l, u)):
+        for j, k in enumerate(range(l, u)):
             alignrecords[k].seq = Seq(results[i][j], generic_nucleotide)
 
     return MultipleSeqAlignment(alignrecords)

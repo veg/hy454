@@ -1,4 +1,6 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.2
+
+from __future__ import division, print_function
 
 import sys
 
@@ -13,7 +15,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     if len(argv) not in (1, 2) or not exists(argv[0]):
-        print >> sys.stderr, 'usage: codonaligner FASTAFILE [OUTPUTFILE]'
+        print('usage: codonaligner FASTAFILE [OUTPUTFILE]', file=sys.stderr)
         sys.exit(-1)
 
     with open(argv[0], 'r') as fh:

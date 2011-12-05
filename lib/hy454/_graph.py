@@ -43,7 +43,7 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     yticks = np.arange(ysep, M+ysep, ysep)
     yticks[-1] = M
 
-    height = [sum([frac for p in alignment[:, i] if p != _GAP]) for i in xrange(N)]
+    height = [sum([frac for p in alignment[:, i] if p != _GAP]) for i in range(N)]
 
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
@@ -97,8 +97,8 @@ def _fix_ambigs(pwm, alphabet):
             'B': ('C', 'G',  T ),
             'N': ('A', 'C', 'G', T )
         }
-        for i in xrange(len(pwm)):
-            for k, unambig in mapper.iteritems():
+        for i in range(len(pwm)):
+            for k, unambig in mapper.items():
                 if k in pwm[i]:
                     # redistribute the probability uniformly
                     C = pwm[i][k] / len(unambig)
@@ -107,11 +107,11 @@ def _fix_ambigs(pwm, alphabet):
                     # remove the key
                     del pwm[i][k]
     # remove gaps
-    for i in xrange(len(pwm)):
+    for i in range(len(pwm)):
         if _GAP in pwm[i]:
             # uniform redistribution to everybody else, eg p(letter | observed)
             C = pwm[i][_GAP] / (len(pwm[i])-1)
-            for l in pwm[i].iterkeys():
+            for l in pwm[i].keys():
                 pwm[i][l] += C
             # remove the gap
             del pwm[i][_GAP]
@@ -126,14 +126,14 @@ _BLUE = '#189cff'
 _RED = '#e80c5b' # '#e80c7a'
 
 # default grey
-_DNA_COLORS = defaultdict(repeat(_GREY).next, {
+_DNA_COLORS = defaultdict(repeat(_GREY).__next__, {
     'A': _GREEN,
     'C': _BLUE,
     'G': _ORANGE,
     'T': _RED,
     'U': _RED
 })
-_AMINO_COLORS = defaultdict(repeat(_GREY).next,
+_AMINO_COLORS = defaultdict(repeat(_GREY).__next__,
     [(l, _GREEN ) for l in 'KRH'] + \
     [(l, _BLUE  ) for l in 'DE'] + \
     # [(l, _ORANGE) for l in ''] + \
@@ -171,25 +171,25 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
 
     # heuristic to determine whether nucleotide or protein alphabet
     # need to use either base 4 or 20 depending 
-    alphlen, _alphkeys = max([(len(pwm[i]), pwm[i].iterkeys()) for i in xrange(N)], key=itemgetter(0))
+    alphlen, _alphkeys = max([(len(pwm[i]), iter(pwm[i].keys())) for i in range(N)], key=itemgetter(0))
     s, colors = (4, _DNA_COLORS) if alphlen < 20 else (20, _AMINO_COLORS)
     alphkeys = ['']
     alphkeys.extend(_alphkeys)
-    alphmap = dict(zip(alphkeys, xrange(len(alphkeys))))
+    alphmap = dict(list(zip(alphkeys, list(range(len(alphkeys))))))
 
     # compute the information content at each position 
     maxbits = np.log2(s)
     e_n = float(s - 1) / (2. * np.log(2) * M)
     R = maxbits * np.ones((N,), dtype=float)
-    R -= [-sum([v * np.log2(v) for _, v in pwm[i].iteritems()]) for i in xrange(N)]
+    R -= [-sum([v * np.log2(v) for _, v in pwm[i].items()]) for i in range(N)]
     R -= e_n
 
     heights = np.zeros((alphlen, N), dtype=float)
     idents = np.zeros((alphlen, N), dtype=int)
 
-    for j in xrange(N):
+    for j in range(N):
         i = 0
-        for k, v in sorted(pwm[i].iteritems(), key=itemgetter(1)):
+        for k, v in sorted(iter(pwm[i].items()), key=itemgetter(1)):
             heights[i, j] = R[j] * v
             idents[i, j] = alphmap[k]
             i += 1
@@ -200,7 +200,7 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
     idxs = np.arange(1, N+1)
     barletters = [[None] * N] * alphlen
     bottoms = np.zeros((N,), dtype=float)
-    for i in xrange(alphlen):
+    for i in range(alphlen):
         bars = ax.bar(idxs, heights[i, :], width=1., bottom=bottoms)
         bottoms += heights[i, :]
         for j, bar in enumerate(bars):
@@ -224,12 +224,12 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
     def on_draw(event):
         global _LOGO_UPDATED
         if not _LOGO_UPDATED:
-            for i in xrange(alphlen):
-                for j in xrange(N):
+            for i in range(alphlen):
+                for j in range(N):
                     bar, letter = barletters[i][j]
                     x, y, bw, bh = bar.get_window_extent().bounds
                     _, _, lw, lh = letter.get_window_extent().bounds
-                    print x, y, bw, bh, lw, lh
+                    print(x, y, bw, bh, lw, lh)
                     tr = Affine2D().scale(100, 100)
                     tr = tr.translate(x, y)
                     letter.set_transform(tr)

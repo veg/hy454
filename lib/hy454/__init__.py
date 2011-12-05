@@ -1,21 +1,21 @@
 
 __version__ = '0.1.0'
 
-from _annotate import *
-from _codonaligner import *
-from _common import *
-from _compensatory import *
-from _fel import *
-from _graph import *
-from _mdr_variants import *
-from _mpi import *
-from _orflist import *
-from _preprocessing import *
-from _rate_class_neb import *
-from _region_extract import *
-from _reporter import *
-from _sliding_window import *
-from _variants import *
+from ._annotate import *
+from ._codonaligner import *
+from ._common import *
+from ._compensatory import *
+from ._fel import *
+from ._graph import *
+from ._mdr_variants import *
+from ._mpi import *
+from ._orflist import *
+from ._preprocessing import *
+from ._rate_class_neb import *
+from ._region_extract import *
+from ._reporter import *
+from ._sliding_window import *
+from ._variants import *
 
 
 __all__ = []
