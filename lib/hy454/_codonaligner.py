@@ -29,6 +29,9 @@ class CodonAligner(HyphyInterface):
         if not len(seqs):
             return [], []
 
+        # uppercase the refseq to deal with bugs in HyPhy's codon aligner
+        refseq = refseq.upper()
+
         # pad the reference to the nearest codon,
         # otherwise the hyphy codon alignment algo barfs 
         if len(refseq) > 3:
