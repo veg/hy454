@@ -17,11 +17,11 @@ setup(name='hy454',
       license='GNU GPL version 3',
       packages=['hy454'],
       package_dir={'hy454': 'lib/hy454'},
-      package_data={'hy454': ['hyphy/*.bf']},
+      package_data={'hy454': ['hyphy/*.bf', 'data/fonts/ttf/*.ttf']},
       data_files=[('/usr/local/bin', [
             'bin/codonaligner',
             'bin/coveragegrapher',
-          # 'bin/seqlogo'
+            'bin/seqlogo'
       ])],
       requires=['Bio', 'fakemp', 'hypy', 'matplotlib', 'numpy']
      )

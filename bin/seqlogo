@@ -21,21 +21,21 @@ def main(argv=None):
         sys.exit(-1)
 
     try:
-        colspec = argv[1]
-        if ':' in colspec:
-            xyz = [int(v) for v in colspec.split(':')]
-            xyz[1] += 1
-            if len(xyz) in (2, 3):
-                colspec = range(*xyz)
+        colspecs = argv[1].split(',')
+        columns = []
+        for colspec in colspecs:
+            if ':' in colspec:
+                xyz = [int(v) for v in colspec.split(':')]
+                xyz[1] += 1
+                if len(xyz) in (2, 3):
+                    columns.extend(range(*xyz))
+                else:
+                    raise ValueError()
             else:
-                raise ValueError()
-        elif ',' in colspec:
-            colspec = [int(v) for v in colspec.split(',')]
-        else:
-            colspec = [int(colspec)]
+                columns.append(int(colspec))
     except:
         print('usage: seqlogo MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
-        print('COLSPEC must be either a comma-delimited list of 1-indices or a colon-delimited range specification start:stop[:skip]', file=sys.stderr)
+        print('COLSPEC must be a comma-delimited list of 1-indices or colon-delimited range specifications start:stop[:skip]', file=sys.stderr)
         sys.exit(-1)
 
     filename = join(getcwd(), argv[2])
@@ -43,7 +43,7 @@ def main(argv=None):
     with open(argv[0]) as fh:
         msa = AlignIO.read(fh, 'fasta')
 
-    graph_logo(msa, colspec, filename, 'pdf')
+    graph_logo(msa, columns, filename, 'pdf')
 
     return 0
 

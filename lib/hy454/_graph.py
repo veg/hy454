@@ -1,4 +1,5 @@
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -6,22 +7,35 @@ from collections import defaultdict
 from itertools import repeat
 from operator import itemgetter
 from os import close
+from os.path import dirname, join
 from tempfile import mkstemp
 
 from Bio.Alphabet import Gapped, HasStopCodon, _verify_alphabet
-from Bio.Alphabet.IUPAC import \
-        ambiguous_dna, ambiguous_rna, extended_protein, \
-        unambiguous_dna, unambiguous_rna
+from Bio.Alphabet.IUPAC import (ambiguous_dna, ambiguous_rna,
+        extended_protein, unambiguous_dna, unambiguous_rna)
 from Bio.Motif import Motif
 from Bio.Seq import Seq
 
+from matplotlib.font_manager import (createFontList,
+        findSystemFonts, fontManager)
 from matplotlib.transforms import Affine2D
 
+from ._basefont import Basefont
 
-__all__ = ['graph_coverage']
+
+__all__ = ['graph_coverage', 'graph_logo']
 
 
 _GAP = '-'
+
+
+_HY454_FONT_PATHS = [join(dirname(__file__), 'data', 'fonts', 'ttf')]
+
+
+# update the fontManager to handle the Roboto font installed with hy454
+fontManager.ttffiles.extend(findSystemFonts(_HY454_FONT_PATHS))
+fontManager.ttflist = createFontList(fontManager.ttffiles)
+
 
 def graph_coverage(alignment, filename=None, fmt='pdf'):
     if filename is None:
@@ -45,10 +59,13 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
 
     height = [sum([frac for p in alignment[:, i] if p != _GAP]) for i in range(N)]
 
+    mpl.rcParams['font.family'] = 'sans-serif'
+    mpl.rcParams['font.sans-serif'] = 'Roboto Thin'
+
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
 
-    ax1.fill_between(np.arange(1, N+1), height, edgecolor=_GREY, facecolor=_GREY, alpha=0.5)
+    ax1.fill_between(np.arange(1, N+1), height, edgecolor=_LBLUE, facecolor=_LBLUE, alpha=0.75)
     ax1.set_xlabel('Reference sequence position')
     ax1.set_ylabel('Coverage')
     # we don't need to set the xticks here because we do it for ax2 
@@ -125,26 +142,37 @@ _ORANGE = '#ff6e27'
 _BLUE = '#189cff'
 _RED = '#e80c5b' # '#e80c7a'
 
+# android color swatch
+_LGREY = '#F2F2F2'
+_LBLUE = '#33B5E5'
+_LPURPLE = '#AA66CC'
+_LGREEN = '#99CC00'
+_LORANGE = '#FFBB33'
+_LRED = '#FF4444'
+_DGREY = '#DDDDDD'
+_DBLUE = '#0099CC'
+_DPURPLE = '#9933CC'
+_DGREEN = '#669900'
+_DORANGE = '#FF8800'
+_DRED = '#CC0000'
+
 # default grey
 _DNA_COLORS = defaultdict(repeat(_GREY).__next__, {
-    'A': _GREEN,
-    'C': _BLUE,
-    'G': _ORANGE,
-    'T': _RED,
-    'U': _RED
+    'A': _LGREEN,
+    'C': _LBLUE,
+    'G': _LORANGE,
+    'T': _LRED,
+    'U': _LRED
 })
 _AMINO_COLORS = defaultdict(repeat(_GREY).__next__,
-    [(l, _GREEN ) for l in 'KRH'] + \
-    [(l, _BLUE  ) for l in 'DE'] + \
+    [(l, _LGREEN ) for l in 'KRH'] + \
+    [(l, _LBLUE  ) for l in 'DE'] + \
     # [(l, _ORANGE) for l in ''] + \
-    [(l, _RED   ) for l in 'AVLIPWFM']
+    [(l, _LRED   ) for l in 'AVLIPWFM']
 )
 
-_LOGO_UPDATED = False
 
 def graph_logo(alignment, columns, filename, fmt='pdf'):
-    global _LOGO_UPDATED
-
     if filename is None:
         fd, filename = mkstemp(); close(fd)
 
@@ -194,7 +222,11 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
             idents[i, j] = alphmap[k]
             i += 1
 
-    _LOGO_UPDATED = False
+    font = Basefont(join(_HY454_FONT_PATHS[0], 'Roboto-Black.ttf'))
+
+    mpl.rcParams['font.family'] = 'sans-serif'
+    mpl.rcParams['font.sans-serif'] = 'Roboto Thin'
+
     fig = plt.figure()
     ax = fig.add_subplot(111)
     idxs = np.arange(1, N+1)
@@ -205,9 +237,11 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
         bottoms += heights[i, :]
         for j, bar in enumerate(bars):
             if idents[i, j]:
-                x, y = bar.get_xy()
                 l = alphkeys[idents[i, j]]
-                barletters[i][j] = bar, ax.text(x, y, l, color=colors[l])
+                glyph = font.char_patch(l)
+                barletters[i][j] = bar, glyph
+                glyph.set_facecolor(colors[l])
+                ax.add_patch(glyph)
 
     ax.set_ylim((0, maxbits))
 
@@ -222,25 +256,22 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
     ax.set_xticks(np.arange(1, N+1, dtype=int))
 
     def on_draw(event):
-        global _LOGO_UPDATED
-        if not _LOGO_UPDATED:
-            for i in range(alphlen):
-                for j in range(N):
-                    bar, letter = barletters[i][j]
-                    x, y, bw, bh = bar.get_window_extent().bounds
-                    _, _, lw, lh = letter.get_window_extent().bounds
-                    print(x, y, bw, bh, lw, lh)
-                    tr = Affine2D().scale(100, 100)
-                    tr = tr.translate(x, y)
-                    letter.set_transform(tr)
-                    bar.set_visible(False)
-            _LOGO_UPDATED = True
-            fig.canvas.draw()
-        return False
+        for i in range(alphlen):
+            for j in range(N):
+                bar, glyph = barletters[i][j]
+                x, y, bw, bh = bar.get_window_extent().bounds
+                _, _, lw, lh = glyph.get_window_extent().bounds
+                tr = Affine2D().scale(bw / lw, bh / lh)
+                tr = tr.translate(x, y)
+                glyph.set_transform(tr)
+                bar.set_alpha(0.5)
+                # bar.set_visible(False)
 
-    fig.canvas.mpl_connect('draw_event', on_draw)
-
-    fig.show()
+    cid = fig.canvas.mpl_connect('draw_event', on_draw)
+    fig.canvas.draw()
+    fig.canvas.mpl_disconnect(cid)
+    # force a re-draw of the figure
+    fig.canvas.draw()
 
     fig.savefig(filename, format=fmt)
 
