@@ -183,7 +183,7 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
     for _alph in (_DNA_ALPHABET, _RNA_ALPHABET, _AMINO_ALPHABET):
         for r in alignment:
             r.seq.alphabet = _alph
-        if all([_verify_alphabet(r.seq) for r in alignment]):
+        if all([_verify_alphabet(r.seq.upper()) for r in alignment]):
             alph = _alph
             break
     if alph is None:
