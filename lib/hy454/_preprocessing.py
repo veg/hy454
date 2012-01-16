@@ -42,7 +42,7 @@ def preprocess_seqrecords(seqrecords):
     return
 
 
-CUSTOM, FIRST, LONGEST = list(range(3))
+CUSTOM, FIRST, LONGEST = range(3)
 def determine_refseq(seqrecords, mode):
     if mode not in range(3):
         raise ValueError("mode must be one of CUSTOM, FIRST, or LONGEST")
