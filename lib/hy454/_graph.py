@@ -191,7 +191,7 @@ _AMINO_COLORS = defaultdict(repeat(_GREY).__next__,
 )
 
 
-def graph_logo(alignment, columns, filename, dpi=None, edgecolor='k', figsize=None, format='pdf', labels=None, linewidth=0.25, transparent=True):
+def graph_logo(alignment, columns, filename, dpi=None, edgecolor='k', figsize=None, format='pdf', labels=None, linewidth=0., transparent=True):
     if filename is None:
         fd, filename = mkstemp(); close(fd)
 
