@@ -43,7 +43,7 @@ def main(argv=None):
     with open(argv[0]) as fh:
         msa = AlignIO.read(fh, 'fasta')
 
-    graph_logo(msa, columns, filename, 'pdf')
+    graph_logo(msa, columns, filename, format='pdf')
 
     return 0
 

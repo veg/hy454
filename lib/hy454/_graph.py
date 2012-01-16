@@ -18,6 +18,7 @@ from Bio.Seq import Seq
 
 from matplotlib.font_manager import (createFontList,
         findSystemFonts, fontManager)
+from matplotlib.ticker import FormatStrFormatter, FuncFormatter
 from matplotlib.transforms import Affine2D
 
 from ._basefont import Basefont
@@ -27,6 +28,7 @@ __all__ = ['graph_coverage', 'graph_logo']
 
 
 _GAP = '-'
+_STOP = '*'
 
 
 _HY454_FONT_PATHS = [join(dirname(__file__), 'data', 'fonts', 'ttf')]
@@ -37,7 +39,7 @@ fontManager.ttffiles.extend(findSystemFonts(_HY454_FONT_PATHS))
 fontManager.ttflist = createFontList(fontManager.ttffiles)
 
 
-def graph_coverage(alignment, filename=None, fmt='pdf'):
+def graph_coverage(alignment, filename=None, format='pdf', transparent=True):
     if filename is None:
         fd, filename = mkstemp(); close(fd)
 
@@ -60,25 +62,30 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     height = [sum([frac for p in alignment[:, i] if p != _GAP]) for i in range(N)]
 
     mpl.rcParams['font.family'] = 'sans-serif'
-    mpl.rcParams['font.sans-serif'] = 'Roboto Thin'
+    mpl.rcParams['font.sans-serif'] = 'Roboto'
 
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
 
-    ax1.fill_between(np.arange(1, N+1), height, edgecolor=_LBLUE, facecolor=_LBLUE, alpha=0.75)
+    ax1.fill_between(np.arange(1, N+1), height, edgecolor=_LBLUE, facecolor=_LBLUE, linewidth=0., zorder=-1)
     ax1.set_xlabel('Reference sequence position')
     ax1.set_ylabel('Coverage')
     # we don't need to set the xticks here because we do it for ax2 
     # ax1.set_xticks(xticks)
     ax1.set_yticks(np.arange(0.2, 1.1, 0.2))
 
-    ax1.set_xlim((0.5, N+1.5))
+    ax1.set_xlim((1., N))
 
     ax2 = ax1.twinx()
     ax2.set_ylabel('# of sequences', rotation=270.)
-    ax2.set_xticks(xticks+0.5)
+    ax2.set_xticks(xticks)
     ax2.set_xticklabels([str(int(t)) for t in xticks])
     ax2.set_yticks(yticks)
+
+    if transparent:
+        fig.patch.set_alpha(0.)
+        ax1.patch.set_alpha(0.)
+        ax2.patch.set_alpha(0.)
 
     # remove the upper ticks 
     for tick in ax1.xaxis.get_major_ticks() + ax2.xaxis.get_major_ticks():
@@ -88,50 +95,62 @@ def graph_coverage(alignment, filename=None, fmt='pdf'):
     ax1.spines['top'].set_visible(False)
     ax2.spines['top'].set_visible(False)
 
-    fig.savefig(filename, format=fmt)
+    fig.savefig(filename, format=format, transparent=transparent)
 
     return filename
 
 
 _DNA_ALPHABET = Gapped(ambiguous_dna)
 _RNA_ALPHABET = Gapped(ambiguous_rna)
-_AMINO_ALPHABET = HasStopCodon(Gapped(extended_protein))
+_AMINO_ALPHABET = HasStopCodon(Gapped(extended_protein, gap_char=_GAP), stop_symbol=_STOP)
 
 def _fix_ambigs(pwm, alphabet):
-    # remove ambigs by distributing their probability uniformly 
+    mapper = {}
+    killchars = _GAP
+    # killchars ambigs by distributing their probability uniformly 
     if alphabet == _DNA_ALPHABET or alphabet == _RNA_ALPHABET:
         T = 'T' if alphabet == _DNA_ALPHABET else 'U'
-        mapper = {
-            'M': ('A', 'C'),
-            'R': ('A', 'G'),
-            'W': ('A',  T ),
-            'S': ('C', 'G'),
-            'Y': ('C',  T ),
-            'K': ('G',  T ),
-            'V': ('A', 'C', 'G'),
-            'H': ('A', 'C',  T ),
-            'D': ('A', 'G',  T ),
-            'B': ('C', 'G',  T ),
-            'N': ('A', 'C', 'G', T )
-        }
-        for i in range(len(pwm)):
-            for k, unambig in mapper.items():
-                if k in pwm[i]:
-                    # redistribute the probability uniformly
-                    C = pwm[i][k] / len(unambig)
-                    for l in unambig:
-                        pwm[i][l] += C
-                    # remove the key
-                    del pwm[i][k]
-    # remove gaps
+        mapper.update({
+            'M': 'AC',
+            'R': 'AG',
+            'W': 'A' + T,
+            'S': 'CG',
+            'Y': 'C' + T,
+            'K': 'G' + T,
+            'V': 'ACG',
+            'H': 'AC' + T,
+            'D': 'AG' + T,
+            'B': 'CG' + T,
+            # 'N': 'ACG' + T
+        })
+        killchars += 'N'
+    elif alphabet == _AMINO_ALPHABET:
+        mapper.update({
+            'B': 'DN',
+            'J': 'IL',
+            'Z': 'EQ',
+            # 'X': 'ACDEFGHIKLMNPQRSTVWY',
+        })
+        killchars += _STOP + 'X' + 'OU'
     for i in range(len(pwm)):
-        if _GAP in pwm[i]:
-            # uniform redistribution to everybody else, eg p(letter | observed)
-            C = pwm[i][_GAP] / (len(pwm[i])-1)
-            for l in pwm[i].keys():
-                pwm[i][l] += C
-            # remove the gap
-            del pwm[i][_GAP]
+        for k, unambig in mapper.items():
+            if k in pwm[i]:
+                # redistribute the probability uniformly
+                C = pwm[i][k] / len(unambig)
+                for l in unambig:
+                    pwm[i][l] += C
+                # killchars the key
+                del pwm[i][k]
+    # killchars gaps
+    for i in range(len(pwm)):
+        for char in killchars:
+            if char in pwm[i]:
+                # uniform redistribution to everybody else, eg p(letter | observed)
+                C = pwm[i][char] / (len(pwm[i])-1)
+                for l in pwm[i].keys():
+                    pwm[i][l] += C
+                # remove the gap
+                del pwm[i][char]
     return pwm
 
 
@@ -172,9 +191,12 @@ _AMINO_COLORS = defaultdict(repeat(_GREY).__next__,
 )
 
 
-def graph_logo(alignment, columns, filename, fmt='pdf'):
+def graph_logo(alignment, columns, filename, dpi=None, edgecolor='k', figsize=None, format='pdf', labels=None, linewidth=0.25, transparent=True):
     if filename is None:
         fd, filename = mkstemp(); close(fd)
+
+    if labels is None:
+        labels = ['%d' % idx for idx in columns]
 
     M = len(alignment)
     N = len(columns)
@@ -199,11 +221,11 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
 
     # heuristic to determine whether nucleotide or protein alphabet
     # need to use either base 4 or 20 depending 
-    alphlen, _alphkeys = max([(len(pwm[i]), iter(pwm[i].keys())) for i in range(N)], key=itemgetter(0))
+    alphlen, _alphkeys = max([(len(pwm[i]), pwm[i].keys()) for i in range(N)], key=itemgetter(0))
     s, colors = (4, _DNA_COLORS) if alphlen < 20 else (20, _AMINO_COLORS)
     alphkeys = ['']
     alphkeys.extend(_alphkeys)
-    alphmap = dict(list(zip(alphkeys, list(range(len(alphkeys))))))
+    alphmap = dict(zip(alphkeys, range(len(alphkeys))))
 
     # compute the information content at each position 
     maxbits = np.log2(s)
@@ -213,66 +235,76 @@ def graph_logo(alignment, columns, filename, fmt='pdf'):
     R -= e_n
 
     heights = np.zeros((alphlen, N), dtype=float)
-    idents = np.zeros((alphlen, N), dtype=int)
+    identities = np.zeros((alphlen, N), dtype=int)
 
     for j in range(N):
         i = 0
-        for k, v in sorted(iter(pwm[i].items()), key=itemgetter(1)):
+        for k, v in sorted(pwm[j].items(), key=itemgetter(1)):
             heights[i, j] = R[j] * v
-            idents[i, j] = alphmap[k]
+            identities[i, j] = alphmap[k]
             i += 1
 
     font = Basefont(join(_HY454_FONT_PATHS[0], 'Roboto-Black.ttf'))
 
     mpl.rcParams['font.family'] = 'sans-serif'
-    mpl.rcParams['font.sans-serif'] = 'Roboto Thin'
+    mpl.rcParams['font.sans-serif'] = 'Roboto'
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=figsize, dpi=dpi)
     ax = fig.add_subplot(111)
-    idxs = np.arange(1, N+1)
-    barletters = [[None] * N] * alphlen
-    bottoms = np.zeros((N,), dtype=float)
-    for i in range(alphlen):
-        bars = ax.bar(idxs, heights[i, :], width=1., bottom=bottoms)
-        bottoms += heights[i, :]
-        for j, bar in enumerate(bars):
-            if idents[i, j]:
-                l = alphkeys[idents[i, j]]
-                glyph = font.char_patch(l)
-                barletters[i][j] = bar, glyph
-                glyph.set_facecolor(colors[l])
-                ax.add_patch(glyph)
 
-    ax.set_ylim((0, maxbits))
+    if transparent:
+        fig.patch.set_alpha(0.)
+        ax.patch.set_alpha(0.)
 
-    # remove the top and right ticks 
+    # remove the top and right ticks
     for tick in ax.xaxis.get_major_ticks() + ax.yaxis.get_major_ticks():
         tick.tick2On = False
+
+    # remove the bottom ticks
+    for tick in ax.xaxis.get_major_ticks():
+        tick.tick1On = False
+
+    # rotate the x-axis labels by 45 degrees to enhance packing
+    for label in ax.xaxis.get_ticklabels():
+        label.set_rotation(45)
 
     # disable top and right spines, we don't need them
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
-    ax.set_xticks(np.arange(1, N+1, dtype=int))
+    def format_xlabel(x, pos=None):
+        idx = np.clip(int(x)-1, 0, N-1)
+        return labels[idx]
 
-    def on_draw(event):
-        for i in range(alphlen):
-            for j in range(N):
-                bar, glyph = barletters[i][j]
-                x, y, bw, bh = bar.get_window_extent().bounds
-                _, _, lw, lh = glyph.get_window_extent().bounds
-                tr = Affine2D().scale(bw / lw, bh / lh)
-                tr = tr.translate(x, y)
-                glyph.set_transform(tr)
-                bar.set_alpha(0.5)
-                # bar.set_visible(False)
+    ax.xaxis.set_major_formatter(FuncFormatter(format_xlabel))
+    # avoid too much precision
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%1.1f'))
 
-    cid = fig.canvas.mpl_connect('draw_event', on_draw)
-    fig.canvas.draw()
-    fig.canvas.mpl_disconnect(cid)
-    # force a re-draw of the figure
-    fig.canvas.draw()
+    # set the ticks
+    ax.set_yticks(np.append(np.arange(0, maxbits, 0.5, dtype=float), maxbits))
+    ax.set_xticks(np.arange(1, N+1, dtype=float) + 0.5)
 
-    fig.savefig(filename, format=fmt)
+    # set the axes limits here AFTER the ticks, otherwise borkage
+    ax.set_xlim((1, N+1))
+    ax.set_ylim((0, maxbits))
+
+    idxs = np.arange(1, N+1)
+    bottoms = np.zeros((N,), dtype=float)
+    for i in range(alphlen):
+        bars = ax.bar(idxs, heights[i, :], width=1., bottom=bottoms)
+        bottoms += heights[i, :]
+        for j, bar in enumerate(bars):
+            if identities[i, j]:
+                l = alphkeys[identities[i, j]]
+                glyph = font.char_patch(l)
+                ax.add_patch(glyph)
+                glyph.set_transform(bar.get_transform())
+                bar.set_visible(False)
+                glyph.set_edgecolor(edgecolor)
+                glyph.set_facecolor(colors[l])
+                glyph.set_linewidth(linewidth)
+                glyph.set_zorder(-1)
+
+    fig.savefig(filename, format=format, transparent=transparent)
 
     return filename

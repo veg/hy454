@@ -5,18 +5,18 @@ from os.path import exists
 import numpy as np
 
 from matplotlib.path import Path
-import matplotlib.patches as patches
+from matplotlib.patches import PathPatch
 
 from freetype import *
 
 
 class Basefont(object):
 
-    def __init__(self, fontpath, charsize=48):
-        if not exists(fontpath):
+    def __init__(self, filepath, charsize=48):
+        if not exists(filepath):
             raise ValueError('No valid font file specified')
 
-        face = Face(fontpath)
+        face = Face(filepath if isinstance(filepath, bytes) else filepath.encode('utf-8'))
         face.set_char_size(charsize * 64)
         self.face = face
         self.cache = {}
@@ -24,11 +24,17 @@ class Basefont(object):
     def char_patch(self, char):
         # if we have the path in our cache, re-use it
         if char in self.cache:
-            return patches.PathPatch(self.cache[char])
+            return PathPatch(self.cache[char])
 
         self.face.load_char(char)
         slot = self.face.glyph
         outline = slot.outline
+
+        points_ = np.array(outline.points, dtype=[('x', float), ('y', float)])
+        xs, ys = points_['x'], points_['y']
+
+        xmin, ymin = xs.min(), ys.min()
+        dx, dy = (xs.max() - xmin), (ys.max() - ymin)
 
         start, end = 0, 0
         verts, codes = [], []
@@ -37,6 +43,8 @@ class Basefont(object):
             end = outline.contours[i]
             points = outline.points[start:end+1]
             points.append(points[0])
+            # normalize points to (0, 1) space
+            points = [((x - xmin) / dx, (y - ymin) / dy) for x, y in points]
             tags = outline.tags[start:end+1]
             tags.append(tags[0])
 
@@ -67,10 +75,10 @@ class Basefont(object):
                     verts.append(segment[-1])
                     codes.append(Path.CURVE3)
 
-            start = end+1
+            start = end + 1
 
         path = Path(verts, codes)
         self.cache[char] = path
-        glyph = patches.PathPatch(path)
+        glyph = PathPatch(path, antialiased=True)
 
         return glyph
