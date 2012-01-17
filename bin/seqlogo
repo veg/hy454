@@ -16,8 +16,23 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    if len(argv) != 3 or not exists(argv[0]):
-        print('usage: seqlogo MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
+    try:
+        labels = None
+        for i in range(len(argv)-1):
+            arg = argv[i]
+            if arg[0] == '-':
+                if arg[1] == 'l':
+                    labels = argv[i+1].split(',')
+                    del argv[i]
+                    del argv[i]
+                else:
+                    assert(0)
+            else:
+                break
+        assert(len(argv) == 3)
+        assert(exists(argv[0]))
+    except:
+        print('usage: seqlogo [-l LABELS] MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
         sys.exit(-1)
 
     try:
@@ -33,6 +48,7 @@ def main(argv=None):
                     raise ValueError()
             else:
                 columns.append(int(colspec))
+        assert(True if labels is None else len(labels) == len(columns))
     except:
         print('usage: seqlogo MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
         print('COLSPEC must be a comma-delimited list of 1-indices or colon-delimited range specifications start:stop[:skip]', file=sys.stderr)
@@ -43,7 +59,7 @@ def main(argv=None):
     with open(argv[0]) as fh:
         msa = AlignIO.read(fh, 'fasta')
 
-    graph_logo(msa, columns, filename, format='pdf')
+    graph_logo(msa, columns, filename, format='pdf', labels=labels)
 
     return 0
 
