@@ -18,7 +18,7 @@ def main(argv=None):
 
     try:
         labels = None
-        for i in range(len(argv)-1):
+        for i in range(len(argv)-2, -1, -1):
             arg = argv[i]
             if arg[0] == '-':
                 if arg[1] == 'l':
@@ -27,8 +27,6 @@ def main(argv=None):
                     del argv[i]
                 else:
                     assert(0)
-            else:
-                break
         assert(len(argv) == 3)
         assert(exists(argv[0]))
     except:
