@@ -97,7 +97,7 @@ def graph_coverage(alignment, filename=None, format='pdf', transparent=True):
     ax1.spines['top'].set_visible(False)
     ax2.spines['top'].set_visible(False)
 
-    fig.savefig(filename, format=format, transparent=transparent)
+    fig.savefig(filename, format=format, transparent=transparent, bbox_inches='tight', pad_inches=0.25)
 
     return filename
 
@@ -254,6 +254,10 @@ def graph_logo(alignment, columns, filename, dpi=None, edgecolor='k', figsize=No
     fig = plt.figure(figsize=figsize, dpi=dpi)
     ax = fig.add_subplot(111)
 
+    ax.set_ylabel('bits')
+
+    fig.set_figwidth(2. + N)
+
     if transparent:
         fig.patch.set_alpha(0.)
         ax.patch.set_alpha(0.)
@@ -307,6 +311,6 @@ def graph_logo(alignment, columns, filename, dpi=None, edgecolor='k', figsize=No
                 glyph.set_linewidth(linewidth)
                 glyph.set_zorder(-1)
 
-    fig.savefig(filename, format=format, transparent=transparent)
+    fig.savefig(filename, format=format, transparent=transparent, bbox_inches='tight', pad_inches=0.25)
 
     return filename
