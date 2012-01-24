@@ -1,33 +1,29 @@
 
-from math import ceil, log
 from os.path import abspath, exists, join, split
-from sys import stderr
-
-from Bio.Alphabet import generic_nucleotide
 
 from hypy import HyphyInterface
 
 
-__all__ = ['CodonAligner']
+__all__ = ['DiversityEstimator']
 
 
-class CodonAligner(HyphyInterface):
+class DiversityEstimator(HyphyInterface):
 
     def __init__(self, batchfile=None):
         if batchfile is None:
             batchfile = join(
                     split(abspath(__file__))[0],
-                    'hyphy', 'codonaligner.bf'
+                    'hyphy', 'diversityestimator.bf'
             )
         if not exists(batchfile):
             raise ValueError("Invalid batchfile `%s', it doesn't exist!" % batchfile)
         # use only 1 cpu
-        super(CodonAligner, self).__init__(batchfile, 1)
+        super(DiversityEstimator, self).__init__(batchfile, 1)
 
-    def __call__(self, refseq, seqs, quiet=True)
-        return CodonAligner.align(self, refseq, seqs, quiet)
+    def __call__(self, refseq, seqs, windowsize, stride, quiet=True):
+        return DiversityEstimator.estimate(self, refseq, seqs, windowsize, stride)
 
-    def align(self, refseq, seqs, quiet=True):
+    def estimate(self, refseq, seqs, windowsize, stride, quiet=True):
         # if we have no sequences, abort early to prevent later errors
         if not len(seqs):
             return [], []

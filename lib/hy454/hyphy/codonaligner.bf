@@ -27,6 +27,14 @@ function CleanAlignment(_aln, _keepIns)
     _newStr = "";
     if (_keepIns)
     {
+        _keepIns = 1;
+    }
+    else
+    {
+        _keepIns = 0;
+    }
+    if (_keepIns)
+    {
         _newStr * Abs(_seq);
     }
     else
