@@ -29,11 +29,8 @@ def main(argv=None):
                     assert(0)
         assert(len(argv) == 3)
         assert(exists(argv[0]))
-    except:
-        print('usage: seqlogo [-l LABELS] MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
-        sys.exit(-1)
 
-    try:
+        # now handle column specification
         colspecs = argv[1].split(',')
         columns = []
         for colspec in colspecs:
@@ -48,8 +45,8 @@ def main(argv=None):
                 columns.append(int(colspec))
         assert(True if labels is None else len(labels) == len(columns))
     except:
-        print('usage: seqlogo MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
-        print('COLSPEC must be a comma-delimited list of 1-indices or colon-delimited range specifications start:stop[:skip]', file=sys.stderr)
+        print('usage: seqlogo [-l LABELS] MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
+        print('  COLSPEC must be a comma-delimited list of 1-indices or colon-delimited range specifications start:stop[:skip]', file=sys.stderr)
         sys.exit(-1)
 
     filename = join(getcwd(), argv[2])

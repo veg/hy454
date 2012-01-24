@@ -198,7 +198,7 @@ def graph_logo(alignment, columns, filename, dpi=None, edgecolor='k', figsize=No
         fd, filename = mkstemp(); close(fd)
 
     if labels is None:
-        labels = ['%d' % idx for idx in columns]
+        labels = ['%d' % (idx + 1) for idx in columns]
 
     M = len(alignment)
     N = len(columns)
@@ -298,7 +298,7 @@ def graph_logo(alignment, columns, filename, dpi=None, edgecolor='k', figsize=No
         for j, bar in enumerate(bars):
             if identities[i, j]:
                 l = alphkeys[identities[i, j]]
-                glyph = font.char_patch(l)
+                glyph = font[l]
                 ax.add_patch(glyph)
                 glyph.set_transform(bar.get_transform())
                 bar.set_visible(False)

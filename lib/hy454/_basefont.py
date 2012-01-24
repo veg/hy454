@@ -21,6 +21,9 @@ class Basefont(object):
         self.face = face
         self.cache = {}
 
+    def __getitem__(self, value):
+        return Basefont.char_patch(self, value)
+
     def char_patch(self, char):
         # if we have the path in our cache, re-use it
         if char in self.cache:

@@ -60,7 +60,7 @@ function CleanAlignment(_aln, _keepIns)
         // then we have a full codon insertion,
         // add the original characters back in
         // if _ins == 0 and _dels == 0, then everything is normal,
-        // add the original characters back in 
+        // add the original characters back in
         if ((_keepIns * _ins) == 3 || (_ins == 0 && _dels == 0))
         {
             _newStr * _seq[_k][_k+2];
@@ -175,7 +175,7 @@ function cSM2partialSMs(_scoreMatrix)
                     max100 =  Max(max100,_scoreMatrix[thisCodon][d1*16+d2*4+d3]);
                     max010 =  Max(max010,_scoreMatrix[thisCodon][d2*16+d1*4+d3]);
                     max001 =  Max(max001,_scoreMatrix[thisCodon][d2*16+d3*4+d1]);
-                    
+
                     // d1 and d2 are 1
                     max110 = Max(max110,_scoreMatrix[thisCodon][4*partialCodon + d3]);
                     max101 = Max(max101,_scoreMatrix[thisCodon][t + 4*d3]);
@@ -249,10 +249,10 @@ _cdnaln_numseqs = Abs(_cdnaln_seqs);
 for (_cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1)
 {
     _cdnaln_inseqs = {{_cdnaln_refseq, _cdnaln_seqs[_cdnaln_idx]}};
-    AlignSequences (_cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts); 
+    AlignSequences (_cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts);
     _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
     _cdnaln_scores[_cdnaln_idx] = (_cdnaln_alnseqs[0])[0] / Abs((_cdnaln_alnseqs[0])[1]);
-    
+
     if (_cdnaln_idx > 0)
     {
         _cdnaln_outstr * ",";
