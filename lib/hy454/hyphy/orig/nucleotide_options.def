@@ -67,7 +67,7 @@ function    extractRegionBasedOnReference (reference, fromP, toP, reference_offs
 
     for (stringIndex2=stringIndex;stringIndex2<ll;stringIndex2=stringIndex2+1)
     {
-        if (reference[stringIndex] != "-")
+        if (reference[stringIndex2] != "-")
         {
             if (offsetIndex>=toP)
             {
