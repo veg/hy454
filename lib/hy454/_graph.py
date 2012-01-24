@@ -256,7 +256,8 @@ def graph_logo(alignment, columns, filename, dpi=None, edgecolor='k', figsize=No
 
     ax.set_ylabel('bits')
 
-    fig.set_figwidth(2. + N)
+    if figsize is None:
+        fig.set_figwidth(N)
 
     if transparent:
         fig.patch.set_alpha(0.)
