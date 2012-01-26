@@ -24,7 +24,7 @@ class CodonAligner(HyphyInterface):
         # use only 1 cpu
         super(CodonAligner, self).__init__(batchfile, 1)
 
-    def __call__(self, refseq, seqs, quiet=True)
+    def __call__(self, refseq, seqs, quiet=True):
         return CodonAligner.align(self, refseq, seqs, quiet)
 
     def align(self, refseq, seqs, quiet=True):
