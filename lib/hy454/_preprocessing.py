@@ -61,22 +61,6 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def _codonaligner(refseq, seqs, quiet=True):
-    if not len(seqs):
-        return []
-    worker = CodonAligner()
-    refseqstr = str(refseq)
-    # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]
-    # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
-    # and these are zipped to their revcom+score so that we can easily take a max later 
-    zipped = zip(
-        zip(*worker.align(refseqstr, [str(s) for s in seqs], quiet)),
-        zip(*worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet))
-    )
-    # itemgetter(1) is the score, [0] is the seq
-    return [max(z, key=itemgetter(1))[0] for z in zipped]
-
-
 def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
 
     aligned, scores = CodonAligner()(str(refseq.seq), [str(s.seq) for s in seqrecords], revcomp, quiet)
