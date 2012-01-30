@@ -1,65 +1,77 @@
 
-function Uppercase(_str)
+_revcomp_map = {};
+_revcomp_map["A"] = "T";
+_revcomp_map["C"] = "G";
+_revcomp_map["G"] = "C";
+_revcomp_map["T"] = "A";
+_revcomp_map["M"] = "K";
+_revcomp_map["R"] = "Y";
+_revcomp_map["W"] = "W";
+_revcomp_map["S"] = "S";
+_revcomp_map["Y"] = "R";
+_revcomp_map["K"] = "M";
+_revcomp_map["B"] = "V";  /* not A */
+_revcomp_map["D"] = "H";  /* not C */
+_revcomp_map["H"] = "D";  /* not G */
+_revcomp_map["V"] = "B";  /* not T */
+_revcomp_map["N"] = "N";
+
+function RevComp( _seq )
 {
-    return _str && 1;
+	_seqL = Abs( _seq );
+	_seq2 = "";
+    _seq2 += -1;
+	for ( _rcidx = _seqL; _rcidx >= 0; _rcidx += -1 )
+	{
+		_seq2 * _revcomp_map[ _seq[ _rcidx ] ];
+	}
+	_seq2 * 0;
+	return _seq2;
 }
 
-function TrimStop(_seq)
+function Uppercase( _str )
 {
-    _l = -2;
-    while (_l != Abs(_seq))
-    {
-        _l = Abs(_seq);
-        _seq = _seq ^ {{"[-]$", ""}};
-        _seq = _seq ^ {{"[Tt][Aa][Aa]$", ""}};
-        _seq = _seq ^ {{"[Tt][Aa][Gg]$", ""}};
-        _seq = _seq ^ {{"[Tt][Gg][Aa]$", ""}};
-    }
-    return _seq;
+    _upstr = _str && 1;
+    _upstr * 0;
+    return _upstr;
 }
 
-function CleanAlignment(_aln, _keepIns)
+function TrimStop( _seq )
 {
-    _ref = (_aln[0])[1];
-    _seq = (_aln[0])[2];
-    _newRef = _ref^{{"[-]", ""}};
-    _altRef = _ref^{{"[a-z]", "_"}};
+    _seq2 = _seq  ^ {{ "[-]$", "" }};
+    _seq2 = _seq2 ^ {{ "[Tt][Aa][Aa]$", "" }};
+    _seq2 = _seq2 ^ {{ "[Tt][Aa][Gg]$", "" }};
+    _seq2 = _seq2 ^ {{ "[Tt][Gg][Aa]$", "" }};
+    return _seq2;
+}
+
+function CleanAlignment( _aln, _keepIns )
+{
+    _ref = ( _aln[0] )[1];
+    _seq = ( _aln[0] )[2];
+    _newRef = _ref ^ {{ "[-]",   ""  }};
+    _altRef = _ref ^ {{ "[a-z]", "_" }};
     _newStr = "";
-    if (_keepIns)
-    {
+    if ( _keepIns ) {
         _keepIns = 1;
-    }
-    else
-    {
+        _newStr * Abs( _seq );
+    } else {
         _keepIns = 0;
-    }
-    if (_keepIns)
-    {
-        _newStr * Abs(_seq);
-    }
-    else
-    {
-        _newStr * Abs(_newRef);
+        _newStr * Abs( _newRef );
     }
     _k = 0;
     // codon by codon...
-    _newRefLen = Abs(_newRef);
-    for (_l = 0; _l < _newRefLen; _l += 3)
-    {
+    _newRefLen = Abs( _newRef );
+    for ( _l = 0; _l < _newRefLen; _l += 3 ) {
         _ins = 0;
         _dels = 0;
         // count the number of insertions and deletions
-        _cdnAdv = Min(3, _newRefLen - _l);
-        for (_k2 = 0; _k2 < _cdnAdv; _k2 += 1)
-        {
-            if (_altRef[_k+_k2] == "-")
-            {
+        _cdnAdv = Min( 3, _newRefLen - _l );
+        for ( _k2 = 0; _k2 < _cdnAdv; _k2 += 1 ) {
+            if (_altRef[ _k+_k2 ] == "-") {
                 _ins += 1;
-            }
-            else
-            {
-                if (_altRef[_k+_k2] == "_")
-                {
+            } else {
+                if ( _altRef[ _k+_k2 ] == "_" ) {
                     _dels += 1;
                 }
             }
@@ -69,37 +81,31 @@ function CleanAlignment(_aln, _keepIns)
         // add the original characters back in
         // if _ins == 0 and _dels == 0, then everything is normal,
         // add the original characters back in
-        if ((_keepIns * _ins) == 3 || (_ins == 0 && _dels == 0))
-        {
-            _newStr * _seq[_k][_k+2];
+        if ( ( _keepIns * _ins ) == 3 || ( _ins == 0 && _dels == 0 ) ) {
+            _newStr * _seq[ _k ][ _k+2 ];
             _k += 3;
         }
         // if neither of those two cases is true, then we need to go
         // position by position, removing insertions and
         // fixing deletions by adding in a "N"
-        else
-        {
+        else {
             // _k2 advances by only a single codon (3 positions), whereas
             // _l2 moves us ahead in the alignment. At the end, the difference
             // between _k2 and _l2 should be that _l2 is greater by the number
             // of inserted nucleotides
             _k2 = 0;
-            for (_l2 = 0; _k2 < _cdnAdv; _l2 += 1)
-            {
+            for ( _l2 = 0; _k2 < _cdnAdv; _l2 += 1 ) {
                 // "_" means a deletion, add an "N" back in
-                if (_altRef[_k+_l2] == "_")
-                {
+                if ( _altRef[ _k+_l2 ] == "_" ) {
                     _newStr * "N";
                     _k2 += 1;
                 }
                 // if the character isn't an insertion
                 // which it always isn't because we took care of
                 // insertions above, add the original back in
-                else
-                {
-                    if (_altRef[_k+_l2] != "-")
-                    {
-                        _newStr * _seq[_k+_l2];
+                else {
+                    if ( _altRef[ _k+_l2 ] != "-" ) {
+                        _newStr * _seq[ _k+_l2 ];
                         _k2 += 1;
                     }
                 }
@@ -107,9 +113,12 @@ function CleanAlignment(_aln, _keepIns)
             _k += _l2;
         }
     }
+    _newRef * 0;
+    _newStr * 0;
     // get rid of any gaps
     // _newStr2 = _newStr^{{"[-]", ""}};
-    return {"ref":Uppercase(_newRef), "seq":Uppercase(_newStr[0][_newRefLen])};
+    return { "ref": Uppercase( _newRef ),
+             "seq": Uppercase( _newStr[0][ _newRefLen ] ) };
 }
 
 function pSM2cSM(_protScoreMatrix, _protLetters)
@@ -229,6 +238,17 @@ _cdnaln_protScoreMatrix =
  {-7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7,  1}
 };
 
+ChoiceList ( _cdnaln_dorevcomp, "Align reverse complement?", 1, SKIP_NONE,
+             "No", "Do not check reverse complement",
+             "Yes", "Check reverse complement" );
+fscanf( stdin, "String", _cdnaln_refseq );
+fscanf( stdin, "Number", _cdnaln_numseqs );
+_cdnaln_seqs = {};
+for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 ) {
+    fscanf( stdin, "String", _cdnaln_grabseq );
+    _cdnaln_seqs[ _cdnaln_idx ] = _cdnaln_grabseq;
+}
+
 _cdnaln_protLetters = "ARNDCQEGHILKMFPSTWYV";
 
 _cdnaln_scoreMatrix = pSM2cSM(_cdnaln_protScoreMatrix, _cdnaln_protLetters);
@@ -250,36 +270,59 @@ _cdnaln_partialScoreMatrices = cSM2partialSMs(_cdnaln_scoreMatrix);
 _cdnaln_alnopts ["SEQ_ALIGN_PARTIAL_3x1_SCORES"] = _cdnaln_partialScoreMatrices["3x1"];
 _cdnaln_alnopts ["SEQ_ALIGN_PARTIAL_3x2_SCORES"] = _cdnaln_partialScoreMatrices["3x2"];
 
-_cdnaln_scores = {1,Abs(_cdnaln_seqs)};
+_cdnaln_outstr = "";
+_cdnaln_outstr * 256;
+_cdnaln_outstr = "[";
+// _cdnaln_scores = { 1, Abs( _cdnaln_seqs ) };
 
-_cdnaln_numseqs = Abs(_cdnaln_seqs);
-
-for (_cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1)
+for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
 {
-    _cdnaln_inseqs = {{_cdnaln_refseq, _cdnaln_seqs[_cdnaln_idx]}};
-    AlignSequences (_cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts);
-    _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
-    _cdnaln_scores[_cdnaln_idx] = (_cdnaln_alnseqs[0])[0] / Abs((_cdnaln_alnseqs[0])[1]);
+    // align the sequences and get the score
+    _cdnaln_inseqs = {{ _cdnaln_refseq, _cdnaln_seqs[ _cdnaln_idx ] }};
+    AlignSequences ( _cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts );
+    _cdnaln_score = ( _cdnaln_alnseqs[0] )[0] / Abs( ( _cdnaln_alnseqs[0] )[1] );
+    if ( _cdnaln_dorevcomp ) {
+        // if we're going to check the reverse complement:
+        // once again align the sequences ( this time with the reverse complement )
+        _cdnaln_inseqs_rc = {{ _cdnaln_refseq, RevComp( _cdnaln_seqs[ _cdnaln_idx ] ) }};
+        AlignSequences( _cdnaln_alnseqs_rc, _cdnaln_inseqs_rc, _cdnaln_alnopts );
+        _cdnaln_score_rc = ( _cdnaln_alnseqs_rc[0] )[0] / Abs( ( _cdnaln_alnseqs_rc[0] )[1] );
+        if ( _cdnaln_score_rc > _cdnaln_score ) {
+            // if the reverse complement score is greater than the regular score, use it instead
+            _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs_rc, 0 );
+            _cdnaln_score = _cdnaln_score_rc;
+            // _cdnaln_scores[ _cdnaln_idx ] = _cdnaln_score_rc;
+        } else {
+            // otherwise just the regular score
+            _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
+            // _cdnaln_scores[ _cdnaln_idx ] = _cdnaln_score;
+        }
+    } else {
+        // if we're not checking the reverse complement, just score the result
+        _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
+        // _cdnaln_scores[_cdnaln_idx] = _cdnaln_score;
+    }
 
     if (_cdnaln_idx > 0)
     {
         _cdnaln_outstr * ",";
     }
     // fprintf(stdout, (_cdnaln_alnseqs[0])[1] + "\n" + (_cdnaln_alnseqs[0])[2] + "\n");
-    _cdnaln_outstr * _cdnaln_cleanseqs["seq"]; // (_cdnaln_alnseqs[0])[2]; //
+    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseqs["seq"] + "\"," + _cdnaln_score + "]" ); // (_cdnaln_alnseqs[0])[2]; //
 }
 
+_cdnaln_outstr * "]";
 _cdnaln_outstr * 0;
 
-function _THyPhyAskFor(key)
-{
-    if (key == "seqs")
-    {
-        return _cdnaln_outstr;
-    }
-    if (key == "scores")
-    {
-        return _cdnaln_scores;
-    }
-    return "_THyPhy_NOT_HANDLED_";
-}
+// function _THyPhyAskFor(key)
+// {
+//     if (key == "seqs")
+//     {
+//         return _cdnaln_outstr;
+//     }
+//     if (key == "scores")
+//     {
+//         return _cdnaln_scores;
+//     }
+//     return "_THyPhy_NOT_HANDLED_";
+// }

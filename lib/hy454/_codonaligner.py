@@ -1,33 +1,38 @@
 
+import json
+
 from math import ceil, log
 from os.path import abspath, exists, join, split
 from sys import stderr
 
 from Bio.Alphabet import generic_nucleotide
 
-from hypy import HyphyInterface
+from hypy import HyphyMap
 
 
 __all__ = ['CodonAligner']
 
 
-class CodonAligner(HyphyInterface):
+class CodonAligner(HyphyMap):
 
-    def __init__(self, batchfile=None):
+    def __init__(self, batchfile=None, retvar=None):
         if batchfile is None:
             batchfile = join(
                     split(abspath(__file__))[0],
                     'hyphy', 'codonaligner.bf'
             )
+
+        if retvar is None:
+            retvar = "_cdnaln_outstr"
+
         if not exists(batchfile):
             raise ValueError("Invalid batchfile `%s', it doesn't exist!" % batchfile)
-        # use only 1 cpu
-        super(CodonAligner, self).__init__(batchfile, 1)
+        super(CodonAligner, self).__init__(batchfile, retvar)
 
-    def __call__(self, refseq, seqs, quiet=True):
-        return CodonAligner.align(self, refseq, seqs, quiet)
+    def __call__(self, refseq, seqs, revcomp=False, quiet=True):
+        return CodonAligner.align(self, refseq, seqs, revcomp, quiet)
 
-    def align(self, refseq, seqs, quiet=True):
+    def align(self, refseq, seqs, revcomp=False, quiet=True):
         # if we have no sequences, abort early to prevent later errors
         if not len(seqs):
             return [], []
@@ -46,30 +51,23 @@ class CodonAligner(HyphyInterface):
             pad = 0
             scoremod = 0.
 
-        # compute next power of two size string for the output
-        outlen = (len(refseq) + 1) * len(seqs)
-        outlen = ceil(log(outlen, 2))
-        outlen = int(pow(2, outlen))
+        numnodes = self.nodes
+        numseqs = len(seqs)
+        seqs_per_node = len(seqs) // numnodes
 
-        self.queuestralloc('_cdnaln_outstr', outlen)
-        self.queuevar('_cdnaln_refseq', refseq)
-        self.queuevar('_cdnaln_seqs', seqs)
+        arg1 = 'Yes' if revcomp else 'No'
 
-        self.runqueue()
+        argslist = []
+        for i in range(numnodes):
+            node_seqs = [s.upper() for s in seqs[(i*seqs_per_node):min(numseqs, (i+1)*seqs_per_node)]]
+            argslist.append( [arg1, refseq, len(node_seqs)] + node_seqs )
 
-        if not quiet:
-            if self.stdout != '':
-                print(self.stdout, file=stderr)
-            if self.warnings != '':
-                print(self.warnings, file=stderr)
+        retstrs = self.map(argslist, quiet)
 
-        if self.stderr != '':
-            raise RuntimeError(self.stderr)
+        seqscores = []
+        for retstr in retstrs:
+            seqscores.extend(json.loads(retstr))
 
-        newseqstrs = self.getvar('seqs', HyphyInterface.STRING).split(',')
-        scores = self.getvar('scores', HyphyInterface.MATRIX)
-        if pad:
-            newseqstrs = [s[:-pad] for s in newseqstrs]
-        if scoremod:
-            scores = [s * scoremod for s in scores]
-        return newseqstrs, scores
+        newseqstrs, scores = zip(*seqscores)
+
+        return list(newseqstrs), list(scores)

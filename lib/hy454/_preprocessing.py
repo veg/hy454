@@ -7,13 +7,13 @@ from operator import itemgetter
 from re import compile as re_compile, I as re_I
 from sys import exc_info, exit as sys_exit, float_info
 
-from fakemp import farmout, farmworker
-
 from Bio import SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import generic_nucleotide
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+
+from fakemp import farmout, farmworker
 
 from ._codonaligner import CodonAligner
 
@@ -77,28 +77,14 @@ def _codonaligner(refseq, seqs, quiet=True):
     return [max(z, key=itemgetter(1))[0] for z in zipped]
 
 
-def align_to_refseq(refseq, seqrecords):
-    num_cpus = cpu_count()
+def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
 
-    seqs_per_proc = int(ceil(float(len(seqrecords)) / num_cpus))
-
-    numseqs = len(seqrecords)
-
-    results = farmout(
-        num=num_cpus,
-        setup=lambda i: (_codonaligner, refseq.seq, [s.seq for s in seqrecords[(i*seqs_per_proc):min(numseqs, (i+1)*seqs_per_proc)]]),
-        worker=farmworker,
-        isresult=lambda r: isinstance(r, list),
-        attempts=3
-    )
+    aligned, scores = CodonAligner()(str(refseq.seq), [str(s.seq) for s in seqrecords], revcomp, quiet)
 
     # deepcopy the seqrecords so that we can change their sequences later
     alignrecords = deepcopy(seqrecords)
 
-    for i in range(num_cpus):
-        l = i * seqs_per_proc
-        u = min(numseqs, l + seqs_per_proc)
-        for j, k in enumerate(range(l, u)):
-            alignrecords[k].seq = Seq(results[i][j], generic_nucleotide)
+    for i, aln in enumerate(aligned):
+        alignrecords[i].seq = Seq(aln, generic_nucleotide)
 
     return MultipleSeqAlignment(alignrecords)
