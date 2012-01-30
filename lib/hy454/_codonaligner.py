@@ -51,9 +51,10 @@ class CodonAligner(HyphyMap):
             pad = 0
             scoremod = 0.
 
-        numnodes = self.nodes
         numseqs = len(seqs)
-        seqs_per_node = len(seqs) // numnodes
+        # if the # nodes exceeds the number of seqs, we just need numseqs jobs
+        numnodes = min(numseqs, self.nodes)
+        seqs_per_node = max(1, len(seqs) // numnodes)
 
         arg1 = 'Yes' if revcomp else 'No'
 
