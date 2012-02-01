@@ -63,6 +63,7 @@ class CodonAligner(HyphyMap):
         arg1 = 'Yes' if revcomp else 'No'
 
         argslist = []
+        lwr, upr = 0, 0
         for i in range(numnodes):
             # decrement the remainder during each loop, until it's negative
             if remainder >= 0:
@@ -70,7 +71,12 @@ class CodonAligner(HyphyMap):
             # when the remainder is nothing, return to base seqs_per_node
             elif remainder == 0:
                 seqs_per_node -= 1
-            node_seqs = [s.upper() for s in seqs[(i*seqs_per_node):min(numseqs, (i+1)*seqs_per_node)]]
+
+            # now that seqs_per_node is stateful, we need to index using
+            # a moving range: (lwr, upr)
+            lwr = upr
+            upr = min(numseqs, lwr + seqs_per_node)
+            node_seqs = [s.upper() for s in seqs[lwr:upr]]
             argslist.append( [arg1, refseq, len(node_seqs)] + node_seqs )
 
         retstrs = self.map(argslist, quiet)
