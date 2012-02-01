@@ -20,7 +20,7 @@ function RevComp( _seq )
 {
 	_seqL = Abs( _seq );
 	_seq2 = "";
-    _seq2 += -1;
+    _seqL += -1;
 	for ( _rcidx = _seqL; _rcidx >= 0; _rcidx += -1 )
 	{
 		_seq2 * _revcomp_map[ _seq[ _rcidx ] ];
@@ -291,38 +291,21 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
             // if the reverse complement score is greater than the regular score, use it instead
             _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs_rc, 0 );
             _cdnaln_score = _cdnaln_score_rc;
-            // _cdnaln_scores[ _cdnaln_idx ] = _cdnaln_score_rc;
         } else {
             // otherwise just the regular score
             _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
-            // _cdnaln_scores[ _cdnaln_idx ] = _cdnaln_score;
         }
     } else {
         // if we're not checking the reverse complement, just score the result
         _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
-        // _cdnaln_scores[_cdnaln_idx] = _cdnaln_score;
     }
 
     if (_cdnaln_idx > 0)
     {
         _cdnaln_outstr * ",";
     }
-    // fprintf(stdout, (_cdnaln_alnseqs[0])[1] + "\n" + (_cdnaln_alnseqs[0])[2] + "\n");
     _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseqs["seq"] + "\"," + _cdnaln_score + "]" ); // (_cdnaln_alnseqs[0])[2]; //
 }
 
 _cdnaln_outstr * "]";
 _cdnaln_outstr * 0;
-
-// function _THyPhyAskFor(key)
-// {
-//     if (key == "seqs")
-//     {
-//         return _cdnaln_outstr;
-//     }
-//     if (key == "scores")
-//     {
-//         return _cdnaln_scores;
-//     }
-//     return "_THyPhy_NOT_HANDLED_";
-// }
