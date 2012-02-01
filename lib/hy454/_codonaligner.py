@@ -57,25 +57,20 @@ class CodonAligner(HyphyMap):
         seqs_per_node = max(1, numseqs // numnodes)
         remainder = numseqs % numnodes
 
-        # distribute remainder as 1 to each node...
-        seqs_per_node += 1
-
         arg1 = 'Yes' if revcomp else 'No'
 
         argslist = []
         lwr, upr = 0, 0
         for i in range(numnodes):
-            # decrement the remainder during each loop, until it's negative
-            if remainder >= 0:
-                remainder -= 1
-            # when the remainder is nothing, return to base seqs_per_node
-            elif remainder == 0:
-                seqs_per_node -= 1
-
-            # now that seqs_per_node is stateful, we need to index using
-            # a moving range: (lwr, upr)
+            # since our traversal is stateful, keep these cursors
+            # around. During the first remainder iterations,
+            # add an extra seq to the list of seqs, afterwards
+            # proceed as normal 
             lwr = upr
-            upr = min(numseqs, lwr + seqs_per_node)
+            if i < remainder:
+                upr = min(numseqs, lwr + seqs_per_node + 1)
+            else:
+                upr = min(numseqs, lwr + seqs_per_node)
             node_seqs = [s.upper() for s in seqs[lwr:upr]]
             argslist.append( [arg1, refseq, len(node_seqs)] + node_seqs )
 
