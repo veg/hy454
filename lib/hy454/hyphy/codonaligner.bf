@@ -249,6 +249,16 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 ) {
     _cdnaln_seqs[ _cdnaln_idx ] = _cdnaln_grabseq;
 }
 
+// Due to some bugs in the implementation of the codon aligner,
+// pad the reference sequence to a multiple of 3, 
+_cdnaln_truelen = Abs( _cdnaln_refseq );
+_cdnaln_pad = 3 - ( _cdnaln_truelen % 3 );
+if ( _cdnaln_pad > 0 && _cdnaln_pad < 3 ) {
+    _cdnaln_refseq * ( "NN"[ 0 ][ ( _cdnaln_pad - 1 ) ] );
+}
+_cdnaln_refseq * 0;
+_cdnaln_scoremod = _cdnaln_truelen / ( _cdnaln_truelen + _cdnaln_pad );  
+
 _cdnaln_protLetters = "ARNDCQEGHILKMFPSTWYV";
 
 _cdnaln_scoreMatrix = pSM2cSM(_cdnaln_protScoreMatrix, _cdnaln_protLetters);
@@ -300,11 +310,17 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
         _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
     }
 
+    // trim the sequence back to the true length (unpadded)
+    // and modify the alignment score to account for this
+    _cdnaln_cleanseq = _cdnaln_cleanseqs[ "seq" ];
+    _cdnaln_cleanseq = _cdnaln_cleanseq[ 0 ][ ( _cdnaln_truelen - 1 ) ];
+    _cdnaln_score = _cdnaln_score * _cdnaln_scoremod;
+
     if (_cdnaln_idx > 0)
     {
         _cdnaln_outstr * ",";
     }
-    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseqs["seq"] + "\"," + _cdnaln_score + "]" ); // (_cdnaln_alnseqs[0])[2]; //
+    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseq + "\"," + _cdnaln_score + "]" );
 }
 
 _cdnaln_outstr * "]";

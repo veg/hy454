@@ -40,17 +40,6 @@ class CodonAligner(HyphyMap):
         # uppercase the refseq to deal with bugs in HyPhy's codon aligner
         refseq = refseq.upper()
 
-        # pad the reference to the nearest codon,
-        # otherwise the hyphy codon alignment algo barfs 
-        if len(refseq) > 3:
-            pad = 3 - (len(refseq) % 3)
-            pad = 0 if pad == 3 else pad
-            refseq += '-' * pad
-            scoremod = float(len(refseq)) / (len(refseq) - pad)
-        else:
-            pad = 0
-            scoremod = 0.
-
         numseqs = len(seqs)
         # if the # nodes exceeds the number of seqs, we just need numseqs jobs
         numnodes = min(numseqs, self.nodes)
