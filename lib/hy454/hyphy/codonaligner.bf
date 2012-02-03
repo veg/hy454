@@ -1,3 +1,6 @@
+/*---------------------------------------------
+ reverse complement a nucleotide string
+---------------------------------------------*/
 
 _revcomp_map = {};
 _revcomp_map["A"] = "T";
@@ -18,12 +21,13 @@ _revcomp_map["N"] = "N";
 
 function RevComp( _seq )
 {
-	_seqL = Abs( _seq );
-	_seq2 = "";
+    _seqL = Abs( _seq );
+    _seq2 = "";
+    _seq2 * 128;
     _seqL += -1;
 	for ( _rcidx = _seqL; _rcidx >= 0; _rcidx += -1 )
 	{
-		_seq2 * _revcomp_map[ _seq[ _rcidx ] ];
+		_seq2 * _revcomp_map[ _seq[ _rcidx ] && 1 ];
 	}
 	_seq2 * 0;
 	return _seq2;
@@ -46,6 +50,12 @@ function TrimStop( _seq )
 }
 
 function CleanAlignment( _aln, _keepIns )
+/*
+ * Given the raw alignment record from AlignSequence, clean the aligned sequence and return either the raw sequence or the list of positions by CSV
+ * @param  _aln 		-- the alignment dictionary
+ * @param  _keepIns 	-- whether or not to keep insertions in the REFERENCE (0/1)
+ * @return the cleaned string
+ */
 {
     _ref = ( _aln[0] )[1];
     _seq = ( _aln[0] )[2];
@@ -209,6 +219,12 @@ function cSM2partialSMs(_scoreMatrix)
     }
     return {"3x1": m3x1, "3x2": m3x2};
 }
+
+// -------------------------------------------------------------------------- //
+// ---------------------------- BEGIN MAIN ---------------------------------- //
+// -------------------------------------------------------------------------- //
+
+
 
 _cdnaln_protScoreMatrix =
 {

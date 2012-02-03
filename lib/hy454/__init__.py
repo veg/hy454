@@ -7,7 +7,7 @@ from ._common import *
 from ._compensatory import *
 from ._divestimator import *
 from ._fel import *
-from ._graph import *
+from ._hxb2 import *
 from ._mdr_variants import *
 from ._mpi import *
 from ._orflist import *
@@ -25,7 +25,7 @@ __all__ += _common.__all__
 __all__ += _compensatory.__all__
 __all__ += _divestimator.__all__
 __all__ += _fel.__all__
-__all__ += _graph.__all__
+__all__ += _hxb2.__all__
 __all__ += _mdr_variants.__all__
 __all__ += _mpi.__all__
 __all__ += _orflist.__all__
@@ -34,3 +34,11 @@ __all__ += _rate_class_neb.__all__
 __all__ += _region_extract.__all__
 __all__ += _reporter.__all__
 __all__ += _variants.__all__
+
+
+try:
+    from ._graph import *
+    __all__ += _graph.__all__
+except ImportError:
+    from warnings import warn
+    warn('graphing disabled because some required modules are missing')

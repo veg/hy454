@@ -17,10 +17,28 @@ def positional_write(msa, fh):
     fh.write('\n')
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
+def main(infile=sys.stdout, reference=None, outfile=sys.stdout, positional=False):
 
+    if positional is True:
+        write = positional_write
+    else:
+        write = lambda msa, fh: AlignIO.write(msa, fh, 'fasta'),
+
+    seqrecords = [r for r in SeqIO.parse(infile, 'fasta')]
+
+    if reference is None:
+        refseq = seqrecords.pop(0)
+    else:
+        refseq = _refseqs[args.reference]
+
+    msa = align_to_refseq(refseq, seqrecords)
+
+    write(msa, outfile)
+
+    return 0
+
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='align sequences to a reference using a codon alignment algorithm, returning FASTA by default'
     )
@@ -32,16 +50,12 @@ def main(argv=None):
     )
     parser.add_argument(
         '-r', '--reference',
-        dest='reference',
         choices=_refseqs.keys(),
         help='use a provided default reference sequence'
     )
     parser.add_argument(
         '-p', '--positional',
-        dest='writefunc',
-        action='store_const',
-        const=positional_write,
-        default=lambda msa, fh: AlignIO.write(msa, fh, 'fasta'),
+        action='store_true',
         help='return JSON-formatted reference-relative codon positional format'
     )
     parser.add_argument(
@@ -51,30 +65,14 @@ def main(argv=None):
     )
 
     args = None
+    retcode = -1
     try:
-        args = parser.parse_args(argv)
-
-        seqrecords = [r for r in SeqIO.parse(args.input, 'fasta')]
-
-        if args.reference is None:
-            refseq = seqrecords.pop(0)
-        else:
-            refseq = _refseqs[args.reference]
-
-        msa = align_to_refseq(refseq, seqrecords)
-
-        if args.output is not None:
-            args.writefunc(msa, args.output)
-        else:
-            args.writefunc(msa, sys.stdout)
+        args = parser.parse_args()
+        retcode = main(args.input, args.reference, args.output, args.positional)
     finally:
         if args is not None:
-            args.input.close()
-            if args.output is not None:
+            if not args.input in (None, sys.stdin):
+                args.input.close()
+            if not args.output in (None, sys.stdout):
                 args.output.close()
-
-    return 0
-
-
-if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(retcode)
