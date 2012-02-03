@@ -88,5 +88,5 @@ def positional_write(msa, fh):
         if len(seqdata):
             datastruct[seq.id] = seqdata
 
-    json_dump(datastruct, fh)
+    json_dump(datastruct, fh, separators=(',', ':'))
     fh.write('\n')
