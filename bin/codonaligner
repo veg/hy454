@@ -1,8 +1,6 @@
 #!/usr/bin/env python3.2
 
-from __future__ import division, print_function
-
-import sys
+import argparse, sys
 
 from os.path import exists
 
@@ -10,26 +8,60 @@ from hy454 import align_to_refseq
 from Bio import SeqIO, AlignIO
 
 
+_refseqs = {}
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    if len(argv) not in (1, 2) or not exists(argv[0]):
-        print('usage: codonaligner FASTAFILE [OUTPUTFILE]', file=sys.stderr)
-        sys.exit(-1)
+    parser = argparse.ArgumentParser(
+        description='align sequences to a reference using a codon alignment algorithm'
+    )
+    parser.add_argument(
+        'input',
+        metavar='FASTAFILE',
+        type=argparse.FileType('r'),
+        help='unaligned FASTA file'
+    )
+    parser.add_argument(
+        '--ref',
+        dest='reference',
+        choices=_refseqs.keys(),
+        help='use a provided default reference sequence'
+    )
+    parser.add_argument(
+        '-p',
+        dest='positional',
+        action='store_true',
+        help='return json-formatted refseq-relative position indices'
+    )
+    parser.add_argument(
+        '--output',
+        type=argparse.FileType('w'),
+        help='output FASTA alignment to OUTPUT'
+    )
 
-    with open(argv[0], 'r') as fh:
-        seqrecords = [r for r in SeqIO.parse(fh, 'fasta')]
+    try:
+        args = parser.parse_args(argv)
 
-    refseq = seqrecords.pop(0)
+        seqrecords = [r for r in SeqIO.parse(args.input, 'fasta')]
 
-    msa = align_to_refseq(refseq, seqrecords)
+        if args.reference is None:
+            refseq = seqrecords.pop(0)
+        else:
+            refseq = _refseqs[args.reference]
 
-    if len(argv) == 2:
-        with open(argv[1], 'w') as fh:
-            AlignIO.write(msa, fh, 'fasta')
-    else:
-        AlignIO.write(msa, sys.stdout, 'fasta')
+        msa = align_to_refseq(refseq, seqrecords)
+
+        if args.output is not None:
+            AlignIO.write(msa, args.output, 'fasta')
+        else:
+            AlignIO.write(msa, sys.stdout, 'fasta')
+    finally:
+        args.input.close()
+        if args.output is not None:
+            args.output.close()
 
     return 0
 
