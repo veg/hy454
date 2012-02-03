@@ -25,21 +25,21 @@ def main(argv=None):
         help='unaligned FASTA file'
     )
     parser.add_argument(
-        '--ref',
+        '-r', '--reference',
         dest='reference',
         choices=_refseqs.keys(),
         help='use a provided default reference sequence'
     )
     parser.add_argument(
-        '-p',
+        '-p', '--positional',
         dest='writefunc',
         action='store_const',
         const=positional_write,
         default=lambda msa, fh: AlignIO.write(msa, fh, 'fasta'),
-        help='return json-formatted refseq-relative position indices'
+        help='return JSON-formatted reference-relative codon positional format'
     )
     parser.add_argument(
-        '--output',
+        '-o', '--output',
         type=argparse.FileType('w'),
         help='output FASTA alignment to OUTPUT'
     )
