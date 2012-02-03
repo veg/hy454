@@ -16,7 +16,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser(
-        description='align sequences to a reference using a codon alignment algorithm'
+        description='align sequences to a reference using a codon alignment algorithm, returning FASTA by default'
     )
     parser.add_argument(
         'input',
@@ -41,7 +41,7 @@ def main(argv=None):
     parser.add_argument(
         '-o', '--output',
         type=argparse.FileType('w'),
-        help='output FASTA alignment to OUTPUT'
+        help='save alignment to OUTPUT'
     )
 
     args = None
