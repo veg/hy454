@@ -4,7 +4,7 @@ import argparse, sys
 
 from os.path import exists
 
-from hy454 import align_to_refseq
+from hy454 import align_to_refseq, positional_write
 from Bio import SeqIO, AlignIO
 
 
@@ -32,8 +32,10 @@ def main(argv=None):
     )
     parser.add_argument(
         '-p',
-        dest='positional',
-        action='store_true',
+        dest='writefunc',
+        action='store_const',
+        const=positional_write,
+        default=lambda msa, fh: AlignIO.write(msa, fh, 'fasta'),
         help='return json-formatted refseq-relative position indices'
     )
     parser.add_argument(
@@ -42,6 +44,7 @@ def main(argv=None):
         help='output FASTA alignment to OUTPUT'
     )
 
+    args = None
     try:
         args = parser.parse_args(argv)
 
@@ -55,13 +58,14 @@ def main(argv=None):
         msa = align_to_refseq(refseq, seqrecords)
 
         if args.output is not None:
-            AlignIO.write(msa, args.output, 'fasta')
+            args.writefunc(msa, args.output)
         else:
-            AlignIO.write(msa, sys.stdout, 'fasta')
+            args.writefunc(msa, sys.stdout)
     finally:
-        args.input.close()
-        if args.output is not None:
-            args.output.close()
+        if args is not None:
+            args.input.close()
+            if args.output is not None:
+                args.output.close()
 
     return 0
 

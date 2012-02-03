@@ -1,6 +1,7 @@
 
-from copy import deepcopy
 
+from copy import deepcopy
+from json import dump as json_dump
 from math import ceil, log
 from multiprocessing import cpu_count, current_process
 from operator import itemgetter
@@ -16,14 +17,34 @@ from Bio.SeqRecord import SeqRecord
 from fakemp import farmout, farmworker
 
 from ._codonaligner import CodonAligner
+from ._graph import _GAP
 
 
 __all__ = [
+    'enumerate_codons',
     'preprocess_seqrecords',
     'CUSTOM', 'FIRST', 'LONGEST',
     'determine_refseq',
-    'align_to_refseq'
+    'align_to_refseq',
+    'positional_write'
 ]
+
+
+def enumerate_codons(seq):
+    if isinstance(seq, SeqRecord):
+        seq = seq.seq.data
+    elif isinstance(seq, Seq):
+        seq = seq.data
+    elif not isinstance(seq, str):
+        raise ValueError('can only enumerate codons of a SeqRecord, Seq, or str')
+
+    seqlen = len(seq)
+    num_cdns = seqlen // 3
+    for i in range(num_cdns):
+        pos = 3 * i
+        cdn = seq[pos:min(seqlen, pos + 3)]
+        cdn += '-' * (3 - len(cdn))
+        yield(pos, cdn)
 
 
 def preprocess_seqrecords(seqrecords):
@@ -72,3 +93,18 @@ def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
         alignrecords[i].seq = Seq(aln, generic_nucleotide)
 
     return MultipleSeqAlignment(alignrecords)
+
+
+def positional_write(msa, fh):
+
+    datastruct = {}
+    for seq in msa:
+        seqdata = []
+        for pos, cdn in enumerate_codons(seq):
+            if cdn != (_GAP * 3):
+                seqdata.append((pos, cdn))
+        if len(seqdata):
+            datastruct[seq.id] = seqdata
+
+    json_dump(datastruct, fh)
+    fh.write('\n')
