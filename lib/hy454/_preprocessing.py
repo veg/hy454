@@ -1,7 +1,6 @@
 
 
 from copy import deepcopy
-from json import dump as json_dump
 from math import ceil, log
 from multiprocessing import cpu_count, current_process
 from operator import itemgetter
@@ -26,7 +25,7 @@ __all__ = [
     'CUSTOM', 'FIRST', 'LONGEST',
     'determine_refseq',
     'align_to_refseq',
-    'positional_write'
+    'to_positional'
 ]
 
 
@@ -78,7 +77,7 @@ def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
     return MultipleSeqAlignment(alignrecords)
 
 
-def positional_write(msa, fh):
+def to_positional(msa):
     datastruct = {}
     gapcdn = _GAP * 3
     for seq in msa:
@@ -88,6 +87,4 @@ def positional_write(msa, fh):
                 seqdata.append((pos, cdn))
         if len(seqdata):
             datastruct[seq.id] = seqdata
-
-    json_dump(datastruct, fh, separators=(',', ':'))
-    fh.write('\n')
+    return datastruct

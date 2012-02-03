@@ -2,13 +2,19 @@
 
 import argparse, sys
 
+from json import dump as json_dump
 from os.path import exists
 
-from hy454 import align_to_refseq, positional_write
+from hy454 import align_to_refseq, to_positional
 from Bio import SeqIO, AlignIO
 
 
 _refseqs = {}
+
+
+def positional_write(msa, fh):
+    json_dump(to_positional(msa), fh, separators=(',', ':'))
+    fh.write('\n')
 
 
 def main(argv=None):
