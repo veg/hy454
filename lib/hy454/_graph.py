@@ -23,14 +23,12 @@ from matplotlib.font_manager import (createFontList,
 from matplotlib.ticker import FormatStrFormatter, FuncFormatter
 from matplotlib.transforms import Affine2D
 
+from BioExt import _GAP, _STOP
+
 from ._basefont import Basefont
 
 
 __all__ = ['graph_coverage', 'graph_logo']
-
-
-_GAP = '-'
-_STOP = '*'
 
 
 _HY454_FONT_PATHS = [join(dirname(__file__), 'data', 'fonts', 'ttf')]

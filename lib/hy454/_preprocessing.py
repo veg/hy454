@@ -14,12 +14,11 @@ from Bio.Alphabet import generic_nucleotide
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from BioExt import enumerate_by_codon
+from BioExt import _GAP, enumerate_by_codon
 
 from fakemp import farmout, farmworker
 
 from ._codonaligner import CodonAligner
-from ._graph import _GAP
 
 
 __all__ = [
