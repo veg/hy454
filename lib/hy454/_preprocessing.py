@@ -25,6 +25,7 @@ __all__ = [
     'CUSTOM', 'FIRST', 'LONGEST',
     'determine_refseq',
     'align_to_refseq',
+    'from_positional',
     'to_positional'
 ]
 
@@ -75,6 +76,33 @@ def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
         alignrecords[i].seq = Seq(aln, generic_nucleotide)
 
     return MultipleSeqAlignment(alignrecords)
+
+
+def from_positional(datastruct):
+    records = []
+    gapcdn = _GAP * 3
+    maxlen = 0
+    for poscdns in datastruct.values():
+        lastcdn, _ = poscdns[-1]
+        if lastcdn > maxlen:
+            maxlen = lastcdn
+    maxlen += 3
+    for seqid, poscdns in datastruct.items():
+        seqstr = ''
+        prev = 0
+        for pos, cdn in poscdns:
+            seqstr += _GAP * (pos - prev) + cdn
+            prev = pos + 3
+        seqstr += _GAP * (maxlen - prev)
+        seq = Seq(seqstr, generic_nucleotide)
+        record = SeqRecord(
+            seq,
+            id=seqid,
+            name=seqid,
+            description=seqid
+        )
+        records.append(record)
+    return MultipleSeqAlignment(records)
 
 
 def to_positional(msa):
