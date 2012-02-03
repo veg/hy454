@@ -80,10 +80,11 @@ def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
 
 def positional_write(msa, fh):
     datastruct = {}
+    gapcdn = _GAP * 3
     for seq in msa:
         seqdata = []
         for pos, cdn in enumerate_by_codon(seq):
-            if cdn != (_GAP * 3):
+            if cdn != gapcdn:
                 seqdata.append((pos, cdn))
         if len(seqdata):
             datastruct[seq.id] = seqdata
