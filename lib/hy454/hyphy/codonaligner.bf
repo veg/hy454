@@ -1,3 +1,36 @@
+/*---------------------------------------------
+reverse complement a nucleotide string
+---------------------------------------------*/
+
+_cdnaln_nucleotide_rc = {};
+_cdnaln_nucleotide_rc["A"] = "T";
+_cdnaln_nucleotide_rc["C"] = "G";
+_cdnaln_nucleotide_rc["G"] = "C";
+_cdnaln_nucleotide_rc["T"] = "A";
+_cdnaln_nucleotide_rc["M"] = "K";
+_cdnaln_nucleotide_rc["R"] = "Y";
+_cdnaln_nucleotide_rc["W"] = "W";
+_cdnaln_nucleotide_rc["S"] = "S";
+_cdnaln_nucleotide_rc["Y"] = "R";
+_cdnaln_nucleotide_rc["K"] = "M";
+_cdnaln_nucleotide_rc["B"] = "V";  /* not A */
+_cdnaln_nucleotide_rc["D"] = "H";  /* not C */
+_cdnaln_nucleotide_rc["H"] = "D";  /* not G */
+_cdnaln_nucleotide_rc["V"] = "B";  /* not T */
+_cdnaln_nucleotide_rc["N"] = "N";
+
+function NucleotideReverseComplement (_str)
+{
+	_seqOut = ""; _seqOut*128;
+	_seqL   = Abs(_str);
+	for (_r = _seqL-1; _r >=0 ; _r = _r-1)
+	{
+		_seqOut *_cdnaln_nucleotide_rc[_str[_r]&&1];
+	}
+	_seqOut*0;
+	return _seqOut;
+}
+
 
 function Uppercase(_str)
 {
@@ -18,52 +51,79 @@ function TrimStop(_seq)
     return _seq;
 }
 
-function CleanAlignment(_aln, _keepIns)
+function CleanAlignment(_aln, _keepIns, _returnByPosition)
+ /**
+	 * Given the raw alignment record from AlignSequence, clean the aligned sequence and return either the raw sequence or the list of positions by CSV
+	 * @param  _aln 		-- the alignment dictionary
+	 * @param  _keepIns 	-- whether or not to keep insertions in the REFERENCE (0/1)
+	 * @param  _returnByPosition -- whether or not to keep return the raw string (0) or a dictionary 
+	 * @return the cleaned string (_returnByPosition == 0) or the AVL ( of form "reference index, original codon, all possible amino-acid translations" 
+*/
+
 {
     _ref = (_aln[0])[1];
     _seq = (_aln[0])[2];
+    
+    _by_position_delimiter = ";";
+    
     _newRef = _ref^{{"[-]", ""}};
     _altRef = _ref^{{"[a-z]", "_"}};
+ 	//_altRef is the string where all the frameshifts have been replaced with underscores.
+ 
+    
     _newStr = "";
-    if (_keepIns)
-    {
+    
+    if (_keepIns) {
         _newStr * Abs(_seq);
-    }
-    else
-    {
+    } else {
         _newStr * Abs(_newRef);
-    }
-    _k = 0;
+    }    
+    
+    
+    
     // codon by codon...
+    
+    _k = 0; 
+     		
     _newRefLen = Abs(_newRef);
-    for (_l = 0; _l < _newRefLen; _l += 3)
-    {
-        _ins = 0;
+    
+    for (_l = 0; _l < _newRefLen; _l += 3) {
+        _ins  = 0;
         _dels = 0;
-        // count the number of insertions and deletions
+        
+        // count the number of insertions and deletions in 
+        // the next codon of the reference
+        
         _cdnAdv = Min(3, _newRefLen - _l);
+        
         for (_k2 = 0; _k2 < _cdnAdv; _k2 += 1)
         {
-            if (_altRef[_k+_k2] == "-")
-            {
+            if (_altRef[_k+_k2] == "-") {
                 _ins += 1;
             }
-            else
-            {
-                if (_altRef[_k+_k2] == "_")
-                {
+            else {
+                if (_altRef[_k+_k2] == "_") {
                     _dels += 1;
                 }
             }
         }
+        
         // if _ins == 3 (and we want to keep inserts),
         // then we have a full codon insertion,
-        // add the original characters back in
+        // OR
         // if _ins == 0 and _dels == 0, then everything is normal,
         // add the original characters back in 
-        if ((_keepIns * _ins) == 3 || (_ins == 0 && _dels == 0))
+        
+        if ((_keepIns && _ins == 3) || (_ins == 0 && _dels == 0))
         {
-            _newStr * _seq[_k][_k+2];
+    		if (_returnByPosition) {
+    		
+    		    if (_seq[_k][_k+2] != "---" ) {
+    		        _newStr * (_by_position_delimiter + _l$3 + _by_position_delimiter + _seq[_k][_k+2]);
+    		    }   
+    		} else {
+            	_newStr * _seq[_k][_k+2];
+            }
             _k += 3;
         }
         // if neither of those two cases is true, then we need to go
@@ -76,12 +136,15 @@ function CleanAlignment(_aln, _keepIns)
             // between _k2 and _l2 should be that _l2 is greater by the number
             // of inserted nucleotides
             _k2 = 0;
+            
+            _newCodon = ""; _newCodon * 3;
+            
             for (_l2 = 0; _k2 < _cdnAdv; _l2 += 1)
             {
                 // "_" means a deletion, add an "N" back in
                 if (_altRef[_k+_l2] == "_")
                 {
-                    _newStr * "N";
+                    _newCodon * "N";
                     _k2 += 1;
                 }
                 // if the character isn't an insertion
@@ -91,17 +154,36 @@ function CleanAlignment(_aln, _keepIns)
                 {
                     if (_altRef[_k+_l2] != "-")
                     {
-                        _newStr * _seq[_k+_l2];
+                        _newCodon * _seq[_k+_l2];
                         _k2 += 1;
                     }
                 }
             }
+            
+            _newCodon * 0;
+    		if (_returnByPosition) {
+    		    if (_newCodon != "---") {
+    		        _newStr * (_by_position_delimiter + _l$3 + _by_position_delimiter + _newCodon);
+    		    }
+     		
+    		} else {
+            	_newStr * _newCodon;
+            }
+            
+            
             _k += _l2;
         }
     }
     // get rid of any gaps
     // _newStr2 = _newStr^{{"[-]", ""}};
-    return {"ref":Uppercase(_newRef), "seq":Uppercase(_newStr[0][_newRefLen])};
+        
+    _newStr * 0;
+           
+    if (_returnByPosition) {
+    	return Uppercase(_newStr);
+    } else {
+    	return {"ref":Uppercase(_newRef), "seq":Uppercase(_newStr[0][_newRefLen])};
+	}
 }
 
 function pSM2cSM(_protScoreMatrix, _protLetters)
@@ -193,6 +275,12 @@ function cSM2partialSMs(_scoreMatrix)
     return {"3x1": m3x1, "3x2": m3x2};
 }
 
+// -------------------------------------------------------------------------- //
+// ---------------------------- BEGIN MAIN ---------------------------------- //
+// -------------------------------------------------------------------------- //
+
+
+
 _cdnaln_protScoreMatrix =
 {
  { 6, -3, -4, -4, -2, -2, -2, -1, -3, -3, -3, -2, -2, -4, -2,  0, -1, -5, -3, -1, -4, -2, -2, -7}
@@ -243,14 +331,22 @@ _cdnaln_alnopts ["SEQ_ALIGN_PARTIAL_3x1_SCORES"] = _cdnaln_partialScoreMatrices[
 _cdnaln_alnopts ["SEQ_ALIGN_PARTIAL_3x2_SCORES"] = _cdnaln_partialScoreMatrices["3x2"];
 
 _cdnaln_scores = {1,Abs(_cdnaln_seqs)};
-
 _cdnaln_numseqs = Abs(_cdnaln_seqs);
 
 for (_cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1)
 {
     _cdnaln_inseqs = {{_cdnaln_refseq, _cdnaln_seqs[_cdnaln_idx]}};
-    AlignSequences (_cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts); 
-    _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
+    AlignSequences (_cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts);
+    if (_cdnaln_dorc != 0) {
+    	_cdnaln_inseqs = {{_cdnaln_refseq, NucleotideReverseComplement(_cdnaln_seqs[_cdnaln_idx])}};
+   		 AlignSequences  (_cdnaln_alnseqs_rc, _cdnaln_inseqs, _cdnaln_alnopts);
+   		 if ((_cdnaln_alnseqs_rc[0])[0] > (_cdnaln_alnseqs[0])[0]) { // reverse complement has a better RAW score
+   		 	 _cdnaln_alnseqs = _cdnaln_alnseqs_rc;
+   		 }
+    }
+    _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0, _cdnaln_returnByPosition != 0);
+    
+    
     _cdnaln_scores[_cdnaln_idx] = (_cdnaln_alnseqs[0])[0] / Abs((_cdnaln_alnseqs[0])[1]);
     
     if (_cdnaln_idx > 0)
@@ -258,10 +354,19 @@ for (_cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1)
         _cdnaln_outstr * ",";
     }
     // fprintf(stdout, (_cdnaln_alnseqs[0])[1] + "\n" + (_cdnaln_alnseqs[0])[2] + "\n");
-    _cdnaln_outstr * _cdnaln_cleanseqs["seq"]; // (_cdnaln_alnseqs[0])[2]; //
+    if (_cdnaln_returnByPosition != 0) {
+        _cdnaln_outstr * _cdnaln_cleanseqs;
+    } else {
+        _cdnaln_outstr * _cdnaln_cleanseqs["seq"]; // (_cdnaln_alnseqs[0])[2]; //
+    }
 }
 
 _cdnaln_outstr * 0;
+
+// -------------------------------------------------------------------------- //
+// ---------------------------- ACCESSOR ------------------------------------ //
+// -------------------------------------------------------------------------- //
+
 
 function _THyPhyAskFor(key)
 {

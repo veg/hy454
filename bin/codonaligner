@@ -2,15 +2,20 @@
 
 from __future__ import division, print_function
 
+
 import sys
+import argparse
 
 from os.path import exists
 
 from hy454 import align_to_refseq
 from Bio import SeqIO, AlignIO
+from Bio.Alphabet import IUPAC
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 
-def main(argv=None):
+def main(argv=None, use_this_reference = None, return_by_position = False):
     if argv is None:
         argv = sys.argv[1:]
 
@@ -21,18 +26,36 @@ def main(argv=None):
     with open(argv[0], 'r') as fh:
         seqrecords = [r for r in SeqIO.parse(fh, 'fasta')]
 
-    refseq = seqrecords.pop(0)
-
-    msa = align_to_refseq(refseq, seqrecords)
-
-    if len(argv) == 2:
-        with open(argv[1], 'w') as fh:
-            AlignIO.write(msa, fh, 'fasta')
+    if use_this_reference!=None:
+        refseq = SeqRecord(Seq(use_this_reference,
+                   IUPAC.ambiguous_dna),
+                   id="reference", name="reference")
     else:
-        AlignIO.write(msa, sys.stdout, 'fasta')
+        refseq = seqrecords.pop(0)
+
+    msa = align_to_refseq(refseq, seqrecords,return_by_position)
+
+    if len(argv) == 2 and argv[1] != None:
+        with open(argv[1], 'w') as fh:
+            if return_by_position:
+                 fh.write (msa)
+            else:
+                 AlignIO.write(msa, fh, 'fasta')
+    else:
+        if return_by_position:
+             print(msa)
+        else:
+             AlignIO.write(msa, sys.stdout, 'fasta')
 
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+	from hy454 import hiv_reference_sequences
+	arguments = argparse.ArgumentParser(prog="codonaligner")
+	arguments.add_argument('-p', '--by_position',  action='store_true', help = 'Return alignment mapped to reference by position, e.g. seq,<ref_coord,codon>')
+	arguments.add_argument('-r', '--reference',  default = None, choices = hiv_reference_sequences.keys(), help = 'One of the predefined strings to use as the reference sequence (default = the first sequence is the reference)')
+	arguments.add_argument('inputfile', metavar='infile', nargs = 1, help='Input FASTA')	
+	arguments.add_argument('outputfile', metavar='outfile', nargs = '?', help='Output FASTA')	
+	settings = arguments.parse_args() 
+	sys.exit(main([settings.inputfile[0],settings.outputfile],hiv_reference_sequences[settings.reference] if settings.reference!=None else None,True if settings.by_position == True else False))

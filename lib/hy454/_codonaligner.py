@@ -24,7 +24,7 @@ class CodonAligner(HyphyInterface):
         # use only 1 cpu
         super(CodonAligner, self).__init__(batchfile, 1)
 
-    def align(self, refseq, seqs, quiet=True):
+    def align(self, refseq, seqs, quiet=True, return_by_position=False):
         # if we have no sequences, abort early to prevent later errors
         if not len(seqs):
             return [], []
@@ -51,6 +51,9 @@ class CodonAligner(HyphyInterface):
         self.queuestralloc('_cdnaln_outstr', outlen)
         self.queuevar('_cdnaln_refseq', refseq)
         self.queuevar('_cdnaln_seqs', seqs)
+        if return_by_position:
+        	self.queuevar('_cdnaln_returnByPosition', 1.0)
+       	
 
         self.runqueue()
 
@@ -64,6 +67,7 @@ class CodonAligner(HyphyInterface):
             raise RuntimeError(self.stderr)
 
         newseqstrs = self.getvar('seqs', HyphyInterface.STRING).split(',')
+        
         scores = self.getvar('scores', HyphyInterface.MATRIX)
         if pad:
             newseqstrs = [s[:-pad] for s in newseqstrs]

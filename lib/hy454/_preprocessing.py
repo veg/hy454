@@ -61,7 +61,7 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def _codonaligner(refseq, seqs, quiet=True):
+def _codonaligner(refseq, seqs, quiet=True, return_by_position = False):
     if not len(seqs):
         return []
     worker = CodonAligner()
@@ -70,14 +70,14 @@ def _codonaligner(refseq, seqs, quiet=True):
     # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
     # and these are zipped to their revcom+score so that we can easily take a max later 
     zipped = zip(
-        zip(*worker.align(refseqstr, [str(s) for s in seqs], quiet)),
-        zip(*worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet))
+        zip(*worker.align(refseqstr, [str(s) for s in seqs], quiet, return_by_position)),
+        zip(*worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet, return_by_position))
     )
     # itemgetter(1) is the score, [0] is the seq
     return [max(z, key=itemgetter(1))[0] for z in zipped]
 
 
-def align_to_refseq(refseq, seqrecords):
+def align_to_refseq(refseq, seqrecords, return_by_position = False):
     num_cpus = cpu_count()
 
     seqs_per_proc = int(ceil(float(len(seqrecords)) / num_cpus))
@@ -86,19 +86,27 @@ def align_to_refseq(refseq, seqrecords):
 
     results = farmout(
         num=num_cpus,
-        setup=lambda i: (_codonaligner, refseq.seq, [s.seq for s in seqrecords[(i*seqs_per_proc):min(numseqs, (i+1)*seqs_per_proc)]]),
+        setup=lambda i: (_codonaligner, refseq.seq, [s.seq for s in seqrecords[(i*seqs_per_proc):min(numseqs, (i+1)*seqs_per_proc)]], True,return_by_position),
         worker=farmworker,
         isresult=lambda r: isinstance(r, list),
         attempts=3
     )
 
     # deepcopy the seqrecords so that we can change their sequences later
-    alignrecords = deepcopy(seqrecords)
+    if return_by_position:
+    	alignrecords = []
+    else:
+    	alignrecords = deepcopy(seqrecords)
 
     for i in range(num_cpus):
         l = i * seqs_per_proc
         u = min(numseqs, l + seqs_per_proc)
         for j, k in enumerate(range(l, u)):
-            alignrecords[k].seq = Seq(results[i][j], generic_nucleotide)
-
+            if return_by_position:
+                  alignrecords.append (seqrecords[k].name + results[i][j])
+            else:
+                  alignrecords[k].seq = Seq(results[i][j], generic_nucleotide)
+    if return_by_position:
+    	return '\n'.join (alignrecords)
+    	
     return MultipleSeqAlignment(alignrecords)
