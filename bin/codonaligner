@@ -5,11 +5,29 @@ import argparse, sys
 from json import dump as json_dump
 from os.path import exists
 
-from hy454 import align_to_refseq, to_positional
 from Bio import SeqIO, AlignIO
 
+from BioExt import hxb2, nl4_3
 
-_refseqs = {}
+from hy454 import align_to_refseq, to_positional
+
+
+_refseqs = {
+    'HXB2_env': hxb2.env,
+    'HXB2_gag': hxb2.gag,
+    'HXB2_int': hxb2.int,
+    'HXB2_nef': hxb2.nef,
+    'HXB2_pol': hxb2.pol,
+    'HXB2_pr': hxb2.pr,
+    'HXB2_prrt': hxb2.prrt,
+    'HXB2_rev': hxb2.rev,
+    'HXB2_rt': hxb2.rt,
+    'HXB2_tat': hxb2.tat,
+    'HXB2_vif': hxb2.vif,
+    'HXB2_vpr': hxb2.vpr,
+    'HXB2_vpu': hxb2.vpu,
+    'NL4-3_prrt': nl4_3.prrt
+}
 
 
 def positional_write(msa, fh):
@@ -17,19 +35,22 @@ def positional_write(msa, fh):
     fh.write('\n')
 
 
-def main(infile=sys.stdout, reference=None, outfile=sys.stdout, positional=False):
+def main(infile=sys.stdout, reference=None, outfile=None, positional=False):
+
+    if outfile is None:
+        outfile = sys.stdout
 
     if positional is True:
         write = positional_write
     else:
-        write = lambda msa, fh: AlignIO.write(msa, fh, 'fasta'),
+        write = lambda msa, fh: AlignIO.write(msa, fh, 'fasta')
 
     seqrecords = [r for r in SeqIO.parse(infile, 'fasta')]
 
     if reference is None:
         refseq = seqrecords.pop(0)
     else:
-        refseq = _refseqs[args.reference]
+        refseq = _refseqs[args.reference].load()
 
     msa = align_to_refseq(refseq, seqrecords)
 
@@ -50,7 +71,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-r', '--reference',
-        choices=_refseqs.keys(),
+        choices=sorted(_refseqs.keys()),
         help='use a provided default reference sequence'
     )
     parser.add_argument(

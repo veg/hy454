@@ -9,7 +9,6 @@ from ._divestimator import *
 from ._fel import *
 from ._hxb2 import *
 from ._mdr_variants import *
-from ._mpi import *
 from ._orflist import *
 from ._preprocessing import *
 from ._rate_class_neb import *
@@ -27,7 +26,6 @@ __all__ += _divestimator.__all__
 __all__ += _fel.__all__
 __all__ += _hxb2.__all__
 __all__ += _mdr_variants.__all__
-__all__ += _mpi.__all__
 __all__ += _orflist.__all__
 __all__ += _preprocessing.__all__
 __all__ += _rate_class_neb.__all__
