@@ -1,13 +1,11 @@
 
+
 from copy import deepcopy
 from math import ceil, log
 from multiprocessing import cpu_count, current_process
 from operator import itemgetter
 from re import compile as re_compile, I as re_I
 from sys import exc_info, exit as sys_exit, float_info
-from types import ListType
-
-from fakemp import farmout, farmworker
 
 from Bio import SeqIO
 from Bio.Align import MultipleSeqAlignment
@@ -15,14 +13,20 @@ from Bio.Alphabet import generic_nucleotide
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from _codonaligner import CodonAligner
+from BioExt import _GAP, enumerate_by_codon
+
+from fakemp import farmout, farmworker
+
+from ._codonaligner import CodonAligner
 
 
 __all__ = [
     'preprocess_seqrecords',
     'CUSTOM', 'FIRST', 'LONGEST',
     'determine_refseq',
-    'align_to_refseq'
+    'align_to_refseq',
+    'from_positional',
+    'to_positional'
 ]
 
 
@@ -44,61 +48,71 @@ def preprocess_seqrecords(seqrecords):
 
 CUSTOM, FIRST, LONGEST = range(3)
 def determine_refseq(seqrecords, mode):
-    if mode not in xrange(3):
+    if mode not in range(3):
         raise ValueError("mode must be one of CUSTOM, FIRST, or LONGEST")
 
-    if mode is CUSTOM:
-        seq = raw_input("Input the entire reference sequence without newlines :: ")
+    if mode == CUSTOM:
+        seq = input("Input the entire reference sequence without newlines :: ")
         refseq = SeqRecord(Seq(seq, generic_nucleotide),
                 id="ref", name="reference",
                 description="Custom reference sequence")
-    elif mode is FIRST:
+    elif mode == FIRST:
         refseq = seqrecords.pop(0)
-    elif mode is LONGEST:
+    elif mode == LONGEST:
         idx, refseq = max(enumerate(seqrecords), key=lambda r: len(r[1].seq))
         seqrecords.pop(idx)
 
     return refseq, seqrecords
 
 
-def _codonaligner(refseq, seqs, quiet=True):
-    if not len(seqs):
-        return []
-    worker = CodonAligner()
-    refseqstr = str(refseq)
-    # zipped is a list of tuples of tuples :: [((f, fs), (r, rs)), ...]
-    # worker.align return a tuple of lists, which are zipped together to get tuples of (seq, score)
-    # and these are zipped to their revcom+score so that we can easily take a max later 
-    zipped = zip(
-        zip(*worker.align(refseqstr, [str(s) for s in seqs], quiet)),
-        zip(*worker.align(refseqstr, [str(s.reverse_complement()) for s in seqs], quiet))
-    )
-    # itemgetter(1) is the score, [0] is the seq
-    return [max(z, key=itemgetter(1))[0] for z in zipped]
+def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
 
-
-def align_to_refseq(refseq, seqrecords):
-    num_cpus = cpu_count()
-
-    seqs_per_proc = int(ceil(float(len(seqrecords)) / num_cpus))
-
-    numseqs = len(seqrecords)
-
-    results = farmout(
-        num=num_cpus,
-        setup=lambda i: (_codonaligner, refseq.seq, [s.seq for s in seqrecords[(i*seqs_per_proc):min(numseqs, (i+1)*seqs_per_proc)]]),
-        worker=farmworker,
-        isresult=lambda r: isinstance(r, ListType),
-        attempts=3
-    )
+    aligned, scores = CodonAligner()(str(refseq.seq), [str(s.seq) for s in seqrecords], revcomp, quiet)
 
     # deepcopy the seqrecords so that we can change their sequences later
     alignrecords = deepcopy(seqrecords)
 
-    for i in xrange(num_cpus):
-        l = i * seqs_per_proc
-        u = min(numseqs, l + seqs_per_proc)
-        for j, k in enumerate(xrange(l, u)):
-            alignrecords[k].seq = Seq(results[i][j], generic_nucleotide)
+    for i, aln in enumerate(aligned):
+        alignrecords[i].seq = Seq(aln, generic_nucleotide)
 
     return MultipleSeqAlignment(alignrecords)
+
+
+def from_positional(datastruct):
+    records = []
+    gapcdn = _GAP * 3
+    maxlen = 0
+    for poscdns in datastruct.values():
+        lastcdn, _ = poscdns[-1]
+        if lastcdn > maxlen:
+            maxlen = lastcdn
+    maxlen += 3
+    for seqid, poscdns in datastruct.items():
+        seqstr = ''
+        prev = 0
+        for pos, cdn in poscdns:
+            seqstr += _GAP * (pos - prev) + cdn
+            prev = pos + 3
+        seqstr += _GAP * (maxlen - prev)
+        seq = Seq(seqstr, generic_nucleotide)
+        record = SeqRecord(
+            seq,
+            id=seqid,
+            name=seqid,
+            description=seqid
+        )
+        records.append(record)
+    return MultipleSeqAlignment(records)
+
+
+def to_positional(msa):
+    datastruct = {}
+    gapcdn = _GAP * 3
+    for seq in msa:
+        seqdata = []
+        for pos, cdn in enumerate_by_codon(seq):
+            if cdn != gapcdn:
+                seqdata.append((pos, cdn))
+        if len(seqdata):
+            datastruct[seq.id] = seqdata
+    return datastruct

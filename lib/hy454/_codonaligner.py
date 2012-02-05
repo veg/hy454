@@ -1,69 +1,74 @@
 
+import json
+
 from math import ceil, log
 from os.path import abspath, exists, join, split
 from sys import stderr
 
 from Bio.Alphabet import generic_nucleotide
 
-from hypy import HyphyInterface
+from hypy import HyphyMap
 
 
 __all__ = ['CodonAligner']
 
 
-class CodonAligner(HyphyInterface):
+class CodonAligner(HyphyMap):
 
-    def __init__(self, batchfile=None):
+    def __init__(self, batchfile=None, retvar=None):
         if batchfile is None:
             batchfile = join(
                     split(abspath(__file__))[0],
                     'hyphy', 'codonaligner.bf'
             )
+
+        if retvar is None:
+            retvar = "_cdnaln_outstr"
+
         if not exists(batchfile):
             raise ValueError("Invalid batchfile `%s', it doesn't exist!" % batchfile)
-        # use only 1 cpu
-        super(CodonAligner, self).__init__(batchfile, 1)
+        super(CodonAligner, self).__init__(batchfile, retvar)
 
-    def align(self, refseq, seqs, quiet=True):
+    def __call__(self, refseq, seqs, revcomp=False, quiet=True):
+        return CodonAligner.align(self, refseq, seqs, revcomp, quiet)
+
+    def align(self, refseq, seqs, revcomp=False, quiet=True):
         # if we have no sequences, abort early to prevent later errors
         if not len(seqs):
             return [], []
 
-        # pad the reference to the nearest codon,
-        # otherwise the hyphy codon alignment algo barfs 
-        if len(refseq) > 3:
-            pad = 3 - (len(refseq) % 3)
-            pad = 0 if pad == 3 else pad
-            refseq += '-' * pad
-            scoremod = float(len(refseq)) / (len(refseq) - pad)
-        else:
-            pad = 0
-            scoremod = 0.
+        # uppercase the refseq to deal with bugs in HyPhy's codon aligner
+        refseq = refseq.upper()
 
-        # compute next power of two size string for the output
-        outlen = (len(refseq) + 1) * len(seqs)
-        outlen = ceil(log(outlen, 2))
-        outlen = int(pow(2, outlen))
+        numseqs = len(seqs)
+        # if the # nodes exceeds the number of seqs, we just need numseqs jobs
+        numnodes = min(numseqs, self.nodes)
+        seqs_per_node = max(1, numseqs // numnodes)
+        remainder = numseqs % numnodes
 
-        self.queuestralloc('_cdnaln_outstr', outlen)
-        self.queuevar('_cdnaln_refseq', refseq)
-        self.queuevar('_cdnaln_seqs', seqs)
+        arg1 = 'Yes' if revcomp else 'No'
 
-        self.runqueue()
+        argslist = []
+        lwr, upr = 0, 0
+        for i in range(numnodes):
+            # since our traversal is stateful, keep these cursors
+            # around. During the first remainder iterations,
+            # add an extra seq to the list of seqs, afterwards
+            # proceed as normal 
+            lwr = upr
+            if i < remainder:
+                upr = min(numseqs, lwr + seqs_per_node + 1)
+            else:
+                upr = min(numseqs, lwr + seqs_per_node)
+            node_seqs = [s.upper() for s in seqs[lwr:upr]]
+            argslist.append( [arg1, refseq, len(node_seqs)] + node_seqs )
 
-        if not quiet:
-            if self.stdout != '':
-                print >> stderr, self.stdout
-            if self.warnings != '':
-                print >> stderr, self.warnings
+        retstrs = self.map(argslist, quiet)
 
-        if self.stderr != '':
-            raise RuntimeError(self.stderr)
+        seqscores = []
+        for retstr in retstrs:
+            seqscores.extend(json.loads(retstr))
 
-        newseqstrs = self.getvar('seqs', HyphyInterface.STRING).split(',')
-        scores = self.getvar('scores', HyphyInterface.MATRIX)
-        if pad:
-            newseqstrs = [s[:-pad] for s in newseqstrs]
-        if scoremod:
-            scores = [s * scoremod for s in scores]
-        return newseqstrs, scores
+        newseqstrs, scores = zip(*seqscores)
+
+        return list(newseqstrs), list(scores)

@@ -1,36 +1,99 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.2
 
-import sys
+import argparse, sys
 
+from json import dump as json_dump
 from os.path import exists
 
-from hy454 import align_to_refseq
 from Bio import SeqIO, AlignIO
 
+from BioExt import hxb2, nl4_3
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
+from hy454 import align_to_refseq, to_positional
 
-    if len(argv) not in (1, 2) or not exists(argv[0]):
-        print >> sys.stderr, 'usage: codonaligner FASTAFILE [OUTPUTFILE]'
-        sys.exit(-1)
 
-    with open(argv[0], 'r') as fh:
-        seqrecords = [r for r in SeqIO.parse(fh, 'fasta')]
+_refseqs = {
+    'HXB2_env': hxb2.env,
+    'HXB2_gag': hxb2.gag,
+    'HXB2_int': hxb2.int,
+    'HXB2_nef': hxb2.nef,
+    'HXB2_pol': hxb2.pol,
+    'HXB2_pr': hxb2.pr,
+    'HXB2_prrt': hxb2.prrt,
+    'HXB2_rev': hxb2.rev,
+    'HXB2_rt': hxb2.rt,
+    'HXB2_tat': hxb2.tat,
+    'HXB2_vif': hxb2.vif,
+    'HXB2_vpr': hxb2.vpr,
+    'HXB2_vpu': hxb2.vpu,
+    'NL4-3_prrt': nl4_3.prrt
+}
 
-    refseq = seqrecords.pop(0)
+
+def positional_write(msa, fh):
+    json_dump(to_positional(msa), fh, separators=(',', ':'))
+    fh.write('\n')
+
+
+def main(infile=sys.stdout, reference=None, outfile=None, positional=False):
+
+    if outfile is None:
+        outfile = sys.stdout
+
+    if positional is True:
+        write = positional_write
+    else:
+        write = lambda msa, fh: AlignIO.write(msa, fh, 'fasta')
+
+    seqrecords = [r for r in SeqIO.parse(infile, 'fasta')]
+
+    if reference is None:
+        refseq = seqrecords.pop(0)
+    else:
+        refseq = _refseqs[args.reference].load()
 
     msa = align_to_refseq(refseq, seqrecords)
 
-    if len(argv) == 2:
-        with open(argv[1], 'w') as fh:
-            AlignIO.write(msa, fh, 'fasta')
-    else:
-        AlignIO.write(msa, sys.stdout, 'fasta')
+    write(msa, outfile)
 
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    parser = argparse.ArgumentParser(
+        description='align sequences to a reference using a codon alignment algorithm, returning FASTA by default'
+    )
+    parser.add_argument(
+        'input',
+        metavar='FASTAFILE',
+        type=argparse.FileType('r'),
+        help='unaligned FASTA file'
+    )
+    parser.add_argument(
+        '-r', '--reference',
+        choices=sorted(_refseqs.keys()),
+        help='use a provided default reference sequence'
+    )
+    parser.add_argument(
+        '-p', '--positional',
+        action='store_true',
+        help='return JSON-formatted reference-relative codon positional format'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        type=argparse.FileType('w'),
+        help='save alignment to OUTPUT'
+    )
+
+    args = None
+    retcode = -1
+    try:
+        args = parser.parse_args()
+        retcode = main(args.input, args.reference, args.output, args.positional)
+    finally:
+        if args is not None:
+            if not args.input in (None, sys.stdin):
+                args.input.close()
+            if not args.output in (None, sys.stdout):
+                args.output.close()
+    sys.exit(retcode)

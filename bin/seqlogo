@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.2
 
 import sys
 
@@ -14,26 +14,37 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    if len(argv) != 3 or not exists(argv[0]):
-        print >> sys.stderr, 'usage: seqlogo MSAFILE COLSPEC OUTPUTFILE'
-        sys.exit(-1)
-
     try:
-        colspec = argv[1]
-        if ':' in colspec:
-            xyz = [int(v) for v in colspec.split(':')]
-            xyz[1] += 1
-            if len(xyz) in (2, 3):
-                colspec = xrange(*xyz)
+        labels = None
+        for i in range(len(argv)-2, -1, -1):
+            arg = argv[i]
+            if arg[0] == '-':
+                if arg[1] == 'l':
+                    labels = argv[i+1].split(',')
+                    del argv[i]
+                    del argv[i]
+                else:
+                    assert(0)
+        assert(len(argv) == 3)
+        assert(exists(argv[0]))
+
+        # now handle column specification
+        colspecs = argv[1].split(',')
+        columns = []
+        for colspec in colspecs:
+            if ':' in colspec:
+                xyz = [int(v) for v in colspec.split(':')]
+                xyz[1] += 1
+                if len(xyz) in (2, 3):
+                    columns.extend(range(*xyz))
+                else:
+                    raise ValueError()
             else:
-                raise ValueError()
-        elif ',' in colspec:
-            colspec = [int(v) for v in colspec.split(',')]
-        else:
-            colspec = [int(colspec)]
+                columns.append(int(colspec))
+        assert(True if labels is None else len(labels) == len(columns))
     except:
-        print >> sys.stderr, 'usage: seqlogo MSAFILE COLSPEC OUTPUTFILE'
-        print >> sys.stderr, 'COLSPEC must be either a comma-delimited list of 1-indices or a colon-delimited range specification start:stop[:skip]'
+        print('usage: seqlogo [-l LABELS] MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
+        print('  COLSPEC must be a comma-delimited list of 1-indices or colon-delimited range specifications start:stop[:skip]', file=sys.stderr)
         sys.exit(-1)
 
     filename = join(getcwd(), argv[2])
@@ -41,7 +52,7 @@ def main(argv=None):
     with open(argv[0]) as fh:
         msa = AlignIO.read(fh, 'fasta')
 
-    graph_logo(msa, colspec, filename, 'pdf')
+    graph_logo(msa, columns, filename, format='pdf', labels=labels)
 
     return 0
 
