@@ -312,6 +312,12 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 ) {
     _cdnaln_seqs[ _cdnaln_idx ] = _cdnaln_grabseq;
 }
 
+// uppercase and gapless
+_cdnaln_refseq = Uppercase( _cdnaln_refseq ^ {{ "[-]", "" }} );
+for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 ) {
+    _cdnaln_seqs[ _cdnaln_idx ] = Uppercase( _cdnaln_seqs[ _cdnaln_idx ] ^ {{ "[-]", "" }} );
+}
+
 // Due to some bugs in the implementation of the codon aligner,
 // pad the reference sequence to a multiple of 3, 
 _cdnaln_truelen = Abs( _cdnaln_refseq );
@@ -320,7 +326,7 @@ if ( _cdnaln_pad > 0 && _cdnaln_pad < 3 ) {
     _cdnaln_refseq * ( "NN"[ 0 ][ ( _cdnaln_pad - 1 ) ] );
 }
 _cdnaln_refseq * 0;
-_cdnaln_scoremod = _cdnaln_truelen / ( _cdnaln_truelen + _cdnaln_pad );  
+_cdnaln_scoremod = _cdnaln_truelen / ( _cdnaln_truelen + _cdnaln_pad );
 
 _cdnaln_protLetters = "ARNDCQEGHILKMFPSTWYV";
 
@@ -350,18 +356,21 @@ _cdnaln_outstr = "[";
 
 for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
 {
+    // get the input sequence length, so we can normalize the score later
+    _cdnaln_seqlen = Abs( _cdnaln_seqs[ _cdnaln_idx ] );
     // align the sequences and get the score
     _cdnaln_inseqs = {{ _cdnaln_refseq, _cdnaln_seqs[ _cdnaln_idx ] }};
     AlignSequences ( _cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts );
-    _cdnaln_score = ( _cdnaln_alnseqs[0] )[0] / Abs( ( _cdnaln_alnseqs[0] )[1] );
+    // divide the score by the length of the input sequence (which is assumed to be gapless)
+    _cdnaln_score = ( _cdnaln_alnseqs[0] )[0] / _cdnaln_seqlen;
     if ( _cdnaln_dorevcomp ) {
         // if we are going to check the reverse complement:
         // once again align the sequences ( this time with the reverse complement )
         
         _cdnaln_inseqs_rc = {{ _cdnaln_refseq, RevComp( _cdnaln_seqs[ _cdnaln_idx ] ) }};
         AlignSequences( _cdnaln_alnseqs_rc, _cdnaln_inseqs_rc, _cdnaln_alnopts );
+        // divide the score by the length of the input sequence (which is assumed to be gapless)
         _cdnaln_score_rc = ( _cdnaln_alnseqs_rc[0] )[0] / Abs( ( _cdnaln_alnseqs_rc[0] )[1] );
-        
         if ( _cdnaln_score_rc > _cdnaln_score ) {
             // if the reverse complement score is greater than the regular score, use it instead
             _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs_rc, 0 );

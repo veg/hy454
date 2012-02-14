@@ -1,32 +1,66 @@
 #!/usr/bin/env python3.2
 
-import sys
+import argparse, sys
 
 from os import getcwd
 from os.path import exists, join
 
 from Bio import AlignIO
 
-from hy454 import graph_coverage
+from hy454 import (COVERAGE, MAJORITY,
+    graph_coverage_majority)
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
+def main(infile, mode, outfile):
+    msa = AlignIO.read(infile, 'fasta')
 
-    if len(argv) != 2 or not exists(argv[0]):
-        print('usage: graphcoverage MSAFILE OUTPUTFILE', file=sys.stderr)
-        sys.exit(-1)
+    filename = join(getcwd(), outfile)
 
-    with open(argv[0]) as fh:
-        msa = AlignIO.read(fh, 'fasta')
-
-    filename = join(getcwd(), argv[1])
-
-    graph_coverage(msa, filename, format='pdf')
+    graph_coverage_majority(
+        msa,
+        mode,
+        outfile,
+        format='pdf'
+    )
 
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    parser = argparse.ArgumentParser(
+        description='draw a coverage and/or majority graph of a multiple sequence alignment'
+    )
+    parser.add_argument(
+        'input',
+        metavar='FASTAFILE',
+        type=argparse.FileType('r'),
+        help='aligned FASTA file'
+    )
+    parser.add_argument(
+        'output',
+        metavar='PDFFILE',
+        help='output PDF file'
+    )
+    parser.add_argument(
+        '-c', '--coverage',
+        action='store_const',
+        const=COVERAGE, default=0,
+        help='include a coverage plot in the graph'
+    )
+    parser.add_argument(
+        '-m', '--majority',
+        action='store_const',
+        const=MAJORITY, default=0,
+        help='include a majority plot in the graph'
+    )
+
+    args = None
+    retcode = -1
+    try:
+        args = parser.parse_args()
+        retcode = main(args.input, args.coverage | args.majority, args.output)
+    finally:
+        if args is not None:
+            if not args.input in (None, sys.stdin):
+                args.input.close()
+    sys.exit(retcode)
