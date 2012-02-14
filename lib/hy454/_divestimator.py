@@ -1,10 +1,12 @@
 
 import json
 
-from collections import namedtuple
+from collections import Counter, namedtuple
 from math import ceil, log
+from os import close, remove
 from os.path import abspath, exists, join, split
 from sys import stderr
+from tempfile import mkstemp
 from textwrap import dedent
 
 from Bio.Seq import translate
@@ -16,7 +18,14 @@ from hypy import HyphyInterface, HyphyMap
 __all__ = ['DiversityEstimator', 'Thresholds']
 
 
-Thresholds = namedtuple('Thresholds', ['alnscore', 'minprop'])
+class Thresholds(object):
+
+    def __init__(self, alnscore, mincopy=None, minprop=None):
+        if mincopy == None and minprop == None:
+            raise ValueError('one of either mincopy or minprop must be provided')
+        self.alnscore = alnscore
+        self.mincopy = 0 if mincopy is None else mincopy
+        self.minprop = 0 if minprop is None else minprop
 
 
 class DiversityEstimator(HyphyMap):
@@ -39,67 +48,79 @@ class DiversityEstimator(HyphyMap):
         return DiversityEstimator.estimate(self, refseq, msa, scores, quiet)
 
     def estimate(self, refseq, msa, scores, thresholds, quiet=True):
-        # assume MSA has been trimmed to A:B
-        # strip all sequences that don't have minimum scores
-        msa = [r for r, s in zip(msa, scores) if r > thresholds.alnscore]
+        if not isinstance(thresholds, Thresholds):
+            raise TypeError("unsupported operand type(s) for estimate: '%s'" % str(type(thresholds)))
 
+        # assume MSA has been trimmed to A:B
         # bin unique variants
-        amino_bins = {}
-        codon_bins = {}
-        for r in msa:
-            codons = str(r.seq)
-            aminos = translate(codons)
-            # create key if non-existant
-            if aminos not in amino_bins:
-                amino_bins[aminos] = 0
-            if codons not in codon_bins:
-                codon_bins[codons] = 0
-            # increment key
-            amino_bins[aminos] += 1
-            codon_bins[codons] += 1
+        # strip all sequences that don't have minimum scores
+        nuc_bins = Counter(str(r.seq) for r, s in zip(msa, scores) if s > thresholds.alnscore)
+        amino_bins = Counter()
+        for cdn, c in nuc_bins.items():
+            amino_bins[translate(cdn)] += c
+
+        numvariants = sum(nuc_bins.values())
 
         # only keep those that have the minimum copy count
-        mincopy = thresholds.minprop * len(msa)
+        mincopy = max(thresholds.mincopy, thresholds.minprop * numvariants)
         retained = [r for r, c in amino_bins if c > mincopy]
 
-        iface = HyphyInterface()
-        iface.runqueue(execstr=dedent('''\
-        _divest_stdlib = HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR;
+        inputfile, treefile, bootrawfile, bspsfile = [None] * 4
+        try:
+            fd, inputfile = mkstemp(); close(fd)
+            fd, treefile = mkstemp(); close(fd)
+            fd, bootrawfile = mkstemp(); close(fd)
+            fd, bspsfile = mkstemp(); close(fd)
 
-        _divest_njopts = {};
-        _divest_njopts[ 0 ] = "Distance formulae";
-        _divest_njopts[ 1 ] = "Nucleotide/Protein";
-        _divest_njopts[ 2 ] = "%(input_file)s";
-        _divest_njotps[ 3 ] = "Force Zero";
-        _divest_njopts[ 4 ] = "TN93";
-        _divest_njopts[ 5 ] = "y";
-        _divest_njopts[ 6 ] = "%(tree_file)s";
-        ExecuteAFile( _divest_stdlib + "NeighborJoining.bf", _divest_njopts );
+            with open(inputfile, 'w') as fh:
+                print('\n'.join('>%d\n%s' % (i, seq) for i, seq in enumerate(retained)), file=fh)
 
-        _divest_bsopts = {};
-        _divest_bsopts[ 0 ] = "100";
-        _divest_bsopts[ 1 ] = "%(bootraw_file)s";
-        _divest_bsopts[ 2 ] = "Proportions";
-        _divest_bsopts[ 3 ] = "70";
-        _divest_bsopts[ 4 ] = "%(bootstrap_ps_file)s";
-        ExecuteAFile( _divest_stdlib + "post_npbs.bf", _divest_bsopts );
+            iface = HyphyInterface()
+            iface.runqueue(execstr=dedent('''\
+            _divest_stdlib = HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR;
+    
+            _divest_njopts = {};
+            _divest_njopts[ 0 ] = "Distance formulae";
+            _divest_njopts[ 1 ] = "Nucleotide/Protein";
+            _divest_njopts[ 2 ] = "%(input_file)s";
+            _divest_njotps[ 3 ] = "Force Zero";
+            _divest_njopts[ 4 ] = "TN93";
+            _divest_njopts[ 5 ] = "y";
+            _divest_njopts[ 6 ] = "%(tree_file)s";
+            ExecuteAFile( _divest_stdlib + "NeighborJoining.bf", _divest_njopts );
+    
+            _divest_bsopts = {};
+            _divest_bsopts[ 0 ] = "100";
+            _divest_bsopts[ 1 ] = "%(bootraw_file)s";
+            _divest_bsopts[ 2 ] = "Proportions";
+            _divest_bsopts[ 3 ] = "70";
+            _divest_bsopts[ 4 ] = "%(bootstrap_ps_file)s";
+            ExecuteAFile( _divest_stdlib + "post_npbs.bf", _divest_bsopts );
+    
+            _divest_anpdopts = {};
+            _divest_anpdopts[ 0 ] = "%(input_file)s";
+            _divest_anpdopts[ 1 ] = "HKY85";
+            _divest_anpdopts[ 2 ] = "Global";
+            _divest_anpdopts[ 3 ] = "%(tree_file)s";
+            ExecuteAFile( _divest_stdlib + "AnalyzeNucProtData.bf", _divest_anpdopts );
+            ''') % {
+                'input_file': inputfile,
+                'tree_file': treefile,
+                'bootraw_file': bootrawfile,
+                'bootstrap_ps_file': bspsfile
+            })
 
-        _divest_npopts = {};
-        _divest_npopts[ 0 ] = "%(input_file)s";
-        _divest_npopts[ 1 ] = "HKY85";
-        _divest_npopts[ 2 ] = "Global";
-        _divest_npopts[ 3 ] = "%(tree_file)s";
-        ExecuteAFile( _divest_stdlib + "AnalyzeNucProtData.bf", _divest_npopts );
-        ''') % {
-            'input_file': 'blahblah',
-            'tree_file': 'blahblah',
-            'bootraw_file': 'blahblah',
-            'bootstrap_ps_file': 'blahblah'
-        })
+            # self.map()
+        finally:
+            if exists(inputfile):
+                remove(inputfile)
+            if exists(treefile):
+                remove(treefile)
+            if exists(bootrawfile):
+                remove(bootrawfile)
+            if exists(bspsfile):
+                remove(bspsfile)
 
-        # self.map()
-
-        pass
         # define window A, B
         # align sequences to ref, truncating to [A, B)
         # create bins for each obs in window by aa, and codons

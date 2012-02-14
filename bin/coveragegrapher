@@ -7,8 +7,8 @@ from os.path import exists, join
 
 from Bio import AlignIO
 
-from hy454 import (COVERAGE, PROPORTION,
-    graph_coverage_proportion)
+from hy454 import (COVERAGE, MAJORITY,
+    graph_coverage_majority)
 
 
 def main(infile, mode, outfile):
@@ -16,7 +16,7 @@ def main(infile, mode, outfile):
 
     filename = join(getcwd(), outfile)
 
-    graph_coverage_proportion(
+    graph_coverage_majority(
         msa,
         mode,
         outfile,
@@ -28,7 +28,7 @@ def main(infile, mode, outfile):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='draw a coverage and/or majority proportion graph of a multiple sequence alignment'
+        description='draw a coverage and/or majority graph of a multiple sequence alignment'
     )
     parser.add_argument(
         'input',
@@ -48,17 +48,17 @@ if __name__ == '__main__':
         help='include a coverage plot in the graph'
     )
     parser.add_argument(
-        '-p', '--proportion',
+        '-m', '--majority',
         action='store_const',
-        const=PROPORTION, default=0,
-        help='include a majority proportion plot in the graph'
+        const=MAJORITY, default=0,
+        help='include a majority plot in the graph'
     )
 
     args = None
     retcode = -1
     try:
         args = parser.parse_args()
-        retcode = main(args.input, args.coverage | args.proportion, args.output)
+        retcode = main(args.input, args.coverage | args.majority, args.output)
     finally:
         if args is not None:
             if not args.input in (None, sys.stdin):

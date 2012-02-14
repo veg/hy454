@@ -5,7 +5,7 @@ mpl.use('pdf')
 import matplotlib.pyplot as plt
 import numpy as np
 
-from collections import defaultdict
+from collections import defaultdict, Counter
 from itertools import repeat
 from operator import itemgetter
 from os import close
@@ -33,8 +33,8 @@ from ._basefont import Basefont
 
 __all__ = [
     'COVERAGE',
-    'PROPORTION',
-    'graph_coverage_proportion',
+    'MAJORITY',
+    'graph_coverage_majority',
     'graph_logo'
 ]
 
@@ -47,19 +47,29 @@ fontManager.ttffiles.extend(findSystemFonts(_HY454_FONT_PATHS))
 fontManager.ttflist = createFontList(fontManager.ttffiles)
 
 
-COVERAGE, PROPORTION = 1, 2
+def _max_nonzero_min(values, default=0):
+    vmax = max(values)
+    vmin = vmax
+    for v in values:
+        if v > 0 and v < vmin:
+            vmin = v
+    vmin = default if vmin == vmax else vmin
+    return vmax, vmin
 
-def graph_coverage_proportion(
+
+COVERAGE, MAJORITY = 1, 2
+
+def graph_coverage_majority(
     alignment,
     mode,
     filename=None,
     dpi=None, figsize=None, format='pdf', transparent=True
 ):
     if not mode:
-        mode = COVERAGE | PROPORTION
+        mode = COVERAGE | MAJORITY
 
-    if mode not in (COVERAGE, PROPORTION, COVERAGE | PROPORTION):
-        raise ValueError('mode requires COVERAGE, PROPORTION, or COVERAGE | PROPORTION')
+    if mode not in (COVERAGE, MAJORITY, COVERAGE | MAJORITY):
+        raise ValueError('mode requires COVERAGE, MAJORITY, or COVERAGE | MAJORITY')
 
     if filename is None:
         fd, filename = mkstemp(); close(fd)
@@ -142,66 +152,64 @@ def graph_coverage_proportion(
     ax1 = fig.add_axes(rect)
 
     majorities = np.zeros((N - n0,), dtype=float)
-    if mode & PROPORTION:
+    if mode & MAJORITY:
         for i, col in enumerate(range(n0, N)):
             # count the number of occurrences of each unique character
             # then grab the maximum count observed and multiply it by
-            # frac to get the majorities proportion
-            counts = (
-                alignment[:, col].upper().count(q) for q in
-                set(p.upper() for p in alignment[:, col] if p != _GAP)
-            )
-            # get the max and sum simultaneously the old-school way
-            # to avoid unnecessary instantiation of counts as an [] 
+            # frac to get the majorities
+            counts = Counter(alignment[:, col].upper())
+            if _GAP in counts:
+                del counts[_GAP]
+            # grab the count of the most common variant
             m = 0
-            s = 0
-            for v in counts:
-                if v > m:
-                    m = v
-                s += v
-            s = 1 if s == 0 else s
-            if mode == PROPORTION:
+            if len(counts):
+                m = counts.most_common(1)[0][1]
+            # compute the normalized majority in the majority-only case,
+            # taking care to avoid division-by-zero errors
+            if mode == MAJORITY:
+                s = sum(counts.values())
+                s = 1 if s == 0 else s
                 majorities[i] = m / s
             else:
                 majorities[i] = m * frac
+        ax1.plot(
+            xs, majorities,
+            color=_LRED, linewidth=1., zorder=-1
+        )
 
     if mode & COVERAGE:
         for i, col in enumerate(range(n0, N)):
             heights[i] = sum(frac for p in alignment[:, col] if p != _GAP)
-#         ax1.plot(
-#             xs, heights,
-#             color=_LBLUE, linewidth=0.5, zorder=-1
-#         )
-        ax1.fill_between(
-            xs, heights, majorities,
-            edgecolor=_LBLUE, facecolor=_LBLUE, linewidth=0.5, zorder=-1
-        )
 
     # labels
     ax1.set_xlabel('Reference sequence position')
 
     extra_artists = []
 
-    if mode == (COVERAGE | PROPORTION):
-#         # create a proxy artist for legend, PolyCollections don't work (majorities)
-#         p1 = Rectangle((0, 0), 1, 1, facecolor=_LBLUE, linewidth=0.)
-#         # create a proxy artist for legend, [Lines2D] don't work (proportion)
-#         p2 = Line2D([0, 1], [0, 1], color=_LRED, linewidth=1.)
-#         leg = ax1.legend(
-#             [p1, p2], ['Coverage', 'Majority proportion'],
-#             bbox_to_anchor=(0.5, -0.15), loc=9, ncol=2,
-#             prop={ 'size': 12 }, borderpad=0.
-#         )
-#         leg.legendPatch.set_alpha(0.)
-#         extra_artists.append(leg)
-        ax1.set_ylabel('Coverage - majority proportion')
+    if mode == (COVERAGE | MAJORITY):
+        ax1.plot(
+            xs, heights,
+            color=_LBLUE, linewidth=1., zorder=-2
+        )
+        # create a proxy artist for legend, PolyCollections don't work (heights)
+        p1 = Line2D([0, 1], [0, 1], color=_LBLUE, linewidth=1.)
+        # create a proxy artist for legend, [Lines2D] don't work (majorities)
+        p2 = Line2D([0, 1], [0, 1], color=_LRED, linewidth=1.)
+        leg = ax1.legend(
+            [p1, p2], ['Coverage', 'Majority'],
+            bbox_to_anchor=(0.5, -0.15), loc=9, ncol=2,
+            prop={ 'size': 12 }, borderpad=0.
+        )
+        leg.legendPatch.set_alpha(0.)
+        extra_artists.append(leg)
+#         ax1.set_ylabel('Coverage - majority')
     elif mode == COVERAGE:
+        ax1.fill_between(
+            xs, heights, majorities,
+            edgecolor=_LBLUE, facecolor=_LBLUE, linewidth=1., zorder=-1
+        )
         ax1.set_ylabel('Coverage')
     else:
-        ax1.plot(
-            xs, majorities,
-            color=_LRED, linewidth=0.5, zorder=-1
-        )
         ax1.set_ylabel('Proportion')
 
     def format_percent(x, pos=None):
@@ -219,14 +227,17 @@ def graph_coverage_proportion(
     major_ticks[-1].tick1On = False
 
     # if we're only doing coverage, include the number
-    # of sequences, but with proportion in the mix
+    # of sequences, but with majority in the mix
     # it doesn't make sense 
-    if mode == PROPORTION:
+    if mode == MAJORITY:
         ax1.set_xticks(xticks)
         # if we're not showing the # of sequences on the left,
         # remove the ticks and spine
         major_ticks += ax1.yaxis.get_major_ticks()
         ax1.spines['right'].set_visible(False)
+        # alter axes to show max, min value
+        maxM, minM = _max_nonzero_min(majorities)
+        ax1.spines['left'].set_bounds(minM, maxM)
     else:
         ax2 = ax1.twinx()
         ax2.set_ylabel('No. of sequences', rotation=270.)
@@ -240,15 +251,7 @@ def graph_coverage_proportion(
         # disable the top spines, like we do later
         ax2.spines['top'].set_visible(False)
         # use the axes spines to show the maximum value
-        maxH = max(heights)
-        minH = maxH
-        # grab the minimum nonzero value
-        for h in heights:
-            if h > 0 and h < minH:
-                minH = h
-        # okay, it's 0 -- how annoying
-        if minH == maxH:
-            minH = 0
+        maxH, minH = _max_nonzero_min(heights)
         ax1.spines['left'].set_bounds(minH, maxH)
         ax1.spines['right'].set_bounds(minH, maxH)
 
