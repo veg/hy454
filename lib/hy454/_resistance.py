@@ -18,7 +18,7 @@ COMPLETE_LIST, BINARY  = range(2)
 def read_single_file (file, drug_class, offset, gene, positions):
     resistance_info = {}
     header_line =  file.readline().rstrip().split ('\t')
-    
+
     assert len (header_line) > 2, "Expected at least 3 columns in the drug resistance file header line"
     assert header_line[0].upper() == "POSITION", "The first column is expected to be named Position"
     assert header_line[1].upper() == "AA", "The second column is expected to be named AA"
@@ -26,10 +26,10 @@ def read_single_file (file, drug_class, offset, gene, positions):
     drug_names = header_line[2:]
     positions_by_class = set ()
     positions_by_drug  = {}
-    
+
     for drug in drug_names:
         positions_by_drug [drug] = set()
-    
+
     for line in file.readlines():
         line_tabs = line.rstrip().split('\t')
         line_item = {}
@@ -38,35 +38,35 @@ def read_single_file (file, drug_class, offset, gene, positions):
             if int (line_tabs[2+idx]) != 0:
                 line_item [drug] = int (line_tabs[2+idx])
                 positions_by_drug [drug].add (coord)
-                
+
         if len (line_item) == 0:
             continue
-                
+
         line_item ['Max'] = max ([line_item[k] for k in drug_names if k in line_item])
         positions.add (coord)
         positions_by_class.add(coord)
-        resistance_info [str(coord) + line_tabs[1]] =  line_item 
+        resistance_info [str(coord) + line_tabs[1]] =  line_item
         line_item ['Original'] = gene + line_tabs[0] + line_tabs[1]
-         
+
     for drug in drug_names:
         positions_by_drug [drug] = list(positions_by_drug [drug])
-    
+
     return (resistance_info,{'names':drug_names, 'positions':list(positions_by_class)},positions_by_drug)
 
 def import_mdr_scores_from_stanford ():
     resistance_data_here = {}
     unique_positions     = set ()
-    
+
     by_class = {}
     by_drug  = {}
-    
+
     for drug_class in _resistance_files:
         with open (join(split(abspath(__file__))[0], 'data', 'scores', _resistance_files[drug_class]['name'])) as input_file:
             class_info = read_single_file (input_file, drug_class, _resistance_files[drug_class]['offset'], _resistance_files[drug_class]['gene'], unique_positions)
             resistance_data_here.update(class_info[0])
             by_class[drug_class] = class_info[1]
             by_drug.update(class_info[2])
-        
+
     return {'mutations': resistance_data_here, 'positions': list(unique_positions), 'by class' : by_class, 'by drug': by_drug}
 
 
@@ -102,11 +102,11 @@ def codon_mapper_raw (position,codon,resistance_table):
 
 def codon_mapper_max (raw_info):
     pass
-    
+
 
 def DRAM_calculator (positional_data, resistance_table = None):
-# positional_data should be of the form 
-# {'seqid1':[[coord1,codon1],...] } where coord a 0-based CODON (e.g. in nucleotide space) 
+# positional_data should be of the form
+# {'seqid1':[[coord1,codon1],...] } where coord a 0-based CODON (e.g. in nucleotide space)
 # coordinate and codon is the three letter codon
 
     if resistance_table is None:
@@ -114,35 +114,35 @@ def DRAM_calculator (positional_data, resistance_table = None):
 
     resistance_report = {}
     all_positions = set (resistance_table['positions'])
-    
+
     for seq_id in positional_data:
         position_list = positional_data [seq_id]
         sequenced_positions = set ([ k[0] // 3 for k in position_list ]).intersection (all_positions)
         sequenced_codons    = {}
-        
+
         this_sequence_report = {}
-        
+
         for codon in position_list:
             if codon[0] // 3 in sequenced_positions:
                 sequenced_codons [ codon[0] // 3 ] = codon[1]
-        
+
         for a_codon in sequenced_codons:
             codon_map = codon_mapper_raw (a_codon, sequenced_codons[a_codon], resistance_table)
             if len (codon_map):
                 this_sequence_report [str(a_codon)] = codon_map
             else:
                 this_sequence_report [str(a_codon)] = ["WT"]
-                
+
         not_sequenced = all_positions.difference (sequenced_positions)
         for a_codon in not_sequenced:
             this_sequence_report [str(a_codon)] = None
-            
+
         resistance_report [seq_id] = this_sequence_report
-        
-    resistance_report ['>resistance table'] = resistance_table    
+
+    resistance_report ['>resistance table'] = resistance_table
     return resistance_report
-    
-    
+
+
 def _DRAM_resolve_score (scores, ambiguity_resolution):
     if ambiguity_resolution == DRAM_AMBIGS_OPTIMISTIC:
         return min (scores.items(), key = itemgetter (1))
@@ -150,10 +150,10 @@ def _DRAM_resolve_score (scores, ambiguity_resolution):
         return max (scores.items(), key = itemgetter (1))
 
 
-    
+
 DRAM_AMBIGS_PESSIMISTIC, DRAM_AMBIGS_OPTIMISTIC = range (2)
 DRAM_REPORT_COMPLETE, DRAM_REPORT_BY_DRUG, DRAM_REPORT_BY_MUTATION, DRAM_REPORT_BY_CLASS = range (4)
-    
+
 def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguity_resolution = None, report_mode = None, mut_score_limit = 30, drug_resistance_limit = 30):
 # positional_resistance_data is returned by DRAM_calculator
     if resistance_table is None:
@@ -165,15 +165,15 @@ def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguit
         ambiguity_resolution = DRAM_AMBIGS_PESSIMISTIC
     if report_mode is None:
         report_mode = DRAM_REPORT_COMPLETE
-        
+
     dram_report = {}
-    
+
     # generate the full report by default, then condense if necessary
     # score by drug (with comments if sequenced completely or has noisy data): min and max
     # resistance mutations by drug class (can be limited to major)
     # resistance to classes e.g. NRTI : ['susceptible', 'resistant']
-    
-    
+
+
     for sequence_id in positional_resistance_data:
         if sequence_id == '>resistance table':
             continue
@@ -185,17 +185,17 @@ def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguit
             noisy_positions   = 0
             missing_positions = 0
             major_DRAM        = []
-            
+
             list_of_positions_by_drug = resistance_table['by drug'][drug_name]
-            
+
             for position in list_of_positions_by_drug:
                 score = 0
                 in_this_sequence = sequence_info[str(position)]
                 resolution_scores = {}
-              
+
                 if in_this_sequence is None:
                     missing_positions += 1
-                    continue                    
+                    continue
                 elif in_this_sequence[0] == 'Noisy':
                     noisy_positions += 1
                 else:
@@ -208,16 +208,16 @@ def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguit
                                 score = 0
                         else:
                             score = 0
-                        resolution_scores [value] = score 
+                        resolution_scores [value] = score
                     mutation,score  = _DRAM_resolve_score (resolution_scores, ambiguity_resolution)
                     if score >= mut_score_limit:
                         major_DRAM.append(resistance_table["mutations"][mutation]["Original"])
-                                                              
+
                 total_score += score
 
             sequence_report ['by drug'][drug_name] = {'covered' : covered_positions, 'missing' : missing_positions, 'noisy': noisy_positions, 'score':  total_score ,'mutations' : major_DRAM if len (major_DRAM) else None}
-        
-        
+
+
         sequence_report ['by class'] = {}
         for drug_class, class_info in resistance_table['by class'].items():
             report = {'mutations' : set(), 'resistant' : []}
@@ -231,10 +231,10 @@ def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguit
             sequence_report ['by class'][drug_class] = report
 
         dram_report [sequence_id] = sequence_report
-        #assert False 
-               
+        #assert False
+
     if report_mode == DRAM_REPORT_BY_DRUG:
-    # in this mode the report is of the form 
+    # in this mode the report is of the form
     # seq id => list of drugs to which the sequence is resistant, grouped by class
         drug_report = {}
         for seq_id in dram_report:
@@ -244,7 +244,7 @@ def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguit
             drug_report [seq_id] = seq_drug_report
         return drug_report
     elif report_mode == DRAM_REPORT_BY_MUTATION:
-    # in this mode the report is of the form 
+    # in this mode the report is of the form
     # seq id => list of major mutations
         mut_report = {}
         for seq_id in dram_report:
@@ -254,7 +254,7 @@ def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguit
             mut_report [seq_id] = list(seq_mut_report)
         return mut_report
     elif report_mode == DRAM_REPORT_BY_CLASS:
-    # in this mode the report is of the form 
+    # in this mode the report is of the form
     # seq id => list of drug classes to which there are major mutations
         class_report = {}
         for seq_id in dram_report:
@@ -264,16 +264,16 @@ def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguit
                     class_list.add (drug_class)
             class_report [seq_id] = list(class_list)
         return class_report
-        
-        
-    return dram_report  
-  
+
+
+    return dram_report
+
 if __name__ == "__main__":
     from sys import argv
-    assert len (argv) > 1, "This program requires a single argument -- the .json file of sequences split by positions"  
-    
+    assert len (argv) > 1, "This program requires a single argument -- the .json file of sequences split by positions"
+
     mode = None
-    
+
     if len (argv) == 2:
         with open (argv[1]) as positional_output:
             DRAM_data = DRAM_calculator (json.load (positional_output))
