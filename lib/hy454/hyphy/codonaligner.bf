@@ -364,7 +364,7 @@ _cdnaln_expected_identity_score = computeExpectedPerBaseScore( _cdnaln_expected_
 for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
 {
     // get the input sequence length, so we can normalize the score later
-    _cdnaln_seqlen = Abs( _cdnaln_seqs[ _cdnaln_idx ] );
+    _cdnaln_seqlen = Abs( _cdnaln_seqs[ _cdnaln_idx ] ) / 3;
     // align the sequences and get the score
     _cdnaln_inseqs = {{ _cdnaln_refseq, _cdnaln_seqs[ _cdnaln_idx ] }};
     AlignSequences ( _cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts );
