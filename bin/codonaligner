@@ -35,7 +35,10 @@ def positional_write(msa, fh):
     fh.write('\n')
 
 
-def main(infile=sys.stdout, reference=None, outfile=None, positional=False, homology = None, dropped = None):
+def main(infile=None, reference=None, outfile=None, positional=False, expected_identity=None, discardfile=None):
+
+    if infile is None:
+        infile = sys.stdin
 
     if outfile is None:
         outfile = sys.stdout
@@ -45,9 +48,9 @@ def main(infile=sys.stdout, reference=None, outfile=None, positional=False, homo
     else:
         write = lambda msa, fh: AlignIO.write(msa, fh, 'fasta')
 
-    if homology is None:
-        homology = 0.6
-        
+    if expected_identity is None:
+        expected_identity = 0.
+
     seqrecords = [r for r in SeqIO.parse(infile, 'fasta')]
 
     if reference is None:
@@ -55,27 +58,27 @@ def main(infile=sys.stdout, reference=None, outfile=None, positional=False, homo
     else:
         refseq = _refseqs[args.reference].load()
 
-    msa, dropped_seqs = align_to_refseq(refseq, seqrecords, homology_filter = homology)
+    msa, discarded = align_to_refseq(refseq, seqrecords, expected_identity=expected_identity)
 
     write(msa, outfile)
-        
-    if dropped is not None and len (dropped_seqs) > 0:
-    	SeqIO.write(dropped_seqs, dropped, 'fasta')
+
+    if discardfile is not None and len(discarded) > 0:
+        SeqIO.write(discarded, discardfile, 'fasta')
 
     return 0
 
 
 
 if __name__ == '__main__':
-
-    def check_homology_range (string):
+    def probability(string):
         try:
-            value = float (string)
-            if value < 0.0 or value > 1.0:
-                raise argparse.ArgumentTypeError("%s is not a value in [0,1]" % string)
-            return value
-        except ValueError as e:
-            raise argparse.ArgumentTypeError("%s must be a floating point number" % string)
+            p = float(string)
+            if p < 0 or p > 1:
+                raise ValueError()
+            return p
+        except ValueError:
+            msg = "'%s' is not a probability in [0, 1]" % string
+            raise argparse.ArgumentTypeError(msg)
 
     parser = argparse.ArgumentParser(
         description='align sequences to a reference using a codon alignment algorithm, returning FASTA by default'
@@ -99,30 +102,34 @@ if __name__ == '__main__':
     parser.add_argument(
         '-o', '--output',
         type=argparse.FileType('w'),
+        default=sys.stdout,
         help='save alignment to OUTPUT'
     )
-
     parser.add_argument(
-        '-m', '--homology',
-        type=check_homology_range,
-        help='discard sequences that are insufficiently homologous to the reference sequence [default value = 0.6]'
+        '-i', '--identity',
+        metavar='VAR',
+        type=probability,
+        default=0.,
+        help='discard sequences that are insufficiently identical to the reference'
     )
-
     parser.add_argument(
-        '-d', '--dropped',
+        '-d', '--discard',
+        metavar='DISCARDFILE',
         type=argparse.FileType('w'),
-        help='write unaligned sequences which failed the homology screen here (pass-through) [default = sequences are not written]'
+        help='discarded sequences are sent to DISCARDFILE'
     )
 
     args = None
     retcode = -1
     try:
         args = parser.parse_args()
-        retcode = main(args.input, args.reference, args.output, args.positional, args.homology, args.dropped)
+        retcode = main(args.input, args.reference, args.output, args.positional, args.identity, args.discard)
     finally:
         if args is not None:
             if not args.input in (None, sys.stdin):
                 args.input.close()
             if not args.output in (None, sys.stdout):
                 args.output.close()
+            if not args.discard in (None, sys.stdout):
+                args.discard.close()
     sys.exit(retcode)

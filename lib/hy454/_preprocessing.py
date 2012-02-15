@@ -65,20 +65,37 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def align_to_refseq(refseq, seqrecords, homology_filter=None, revcomp=True, quiet=False):
-    aligned, scores, overlaps, homologies = CodonAligner()(str(refseq.seq), [str(s.seq) for s in seqrecords], revcomp,homology_filter, quiet)
+def align_to_refseq(refseq, seqrecords, revcomp=True, expected_identity=0., quiet=False):
+    aligned, _, _, identities = CodonAligner()(
+        str(refseq.seq),
+        [str(s.seq) for s in seqrecords],
+        revcomp,
+        expected_identity,
+        quiet
+    )
 
     # deepcopy the seqrecords so that we can change their sequences later
-    alignrecords = []
-    dropped_records = []
+    aligned_records = []
+    discarded_records = []
     for i, aln in enumerate(aligned):
-        if homology_filter is not None and homologies[i] < 0: 
-            dropped_records.append (deepcopy(seqrecords[i]))
-            continue
-        alignrecords.append (deepcopy(seqrecords[i]))
-        alignrecords [-1].seq = Seq(aln, generic_nucleotide)
+        old = seqrecords[i]
+        if expected_identity and identities[i] < 0:
+            discarded_records.append(old)
+        else:
+            new = SeqRecord(
+                Seq(aln, generic_nucleotide),
+                old.id,
+                old.name,
+                old.description,
+                deepcopy(old.dbxrefs),
+                deepcopy(old.features),
+                deepcopy(old.annotations)
+                # don't grab the letter_annotations,
+                # they won't match anymore
+            )
+            aligned_records.append(new)
 
-    return MultipleSeqAlignment(alignrecords),dropped_records
+    return MultipleSeqAlignment(aligned_records), discarded_records
 
 
 def from_positional(datastruct):

@@ -359,7 +359,11 @@ _cdnaln_outstr * 256;
 _cdnaln_outstr = "[";
 // _cdnaln_scores = { 1, Abs( _cdnaln_seqs ) };
 
-_cdnaln_expected_identity_score = computeExpectedPerBaseScore( _cdnaln_expected_identity );
+// if the expected_identity score is 0, then don't compute identity scores
+_cdnaln_expected_identity_score = 0;
+if ( _cdnaln_expected_identity > 0 ) {
+    _cdnaln_expected_identity_score = computeExpectedPerBaseScore( _cdnaln_expected_identity );
+}
 
 for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
 {

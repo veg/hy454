@@ -29,10 +29,10 @@ class CodonAligner(HyphyMap):
             raise ValueError("Invalid batchfile `%s', it doesn't exist!" % batchfile)
         super(CodonAligner, self).__init__(batchfile, retvar)
 
-    def __call__(self, refseq, seqs, revcomp=False, expected_identity=0.6, quiet=True):
+    def __call__(self, refseq, seqs, revcomp=False, expected_identity=0., quiet=True):
         return CodonAligner.align(self, refseq, seqs, revcomp, expected_identity, quiet)
 
-    def align(self, refseq, seqs, revcomp=False, expected_identity=0.6, quiet=True):
+    def align(self, refseq, seqs, revcomp=False, expected_identity=0., quiet=True):
         # if we have no sequences, abort early to prevent later errors
         if not len(seqs):
             return [], []
