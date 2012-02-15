@@ -107,7 +107,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-i', '--identity',
-        metavar='VAR',
+        metavar='PROBABILITY',
         type=probability,
         default=0.,
         help='discard sequences that are insufficiently identical to the reference'
