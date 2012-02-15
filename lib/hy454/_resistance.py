@@ -142,7 +142,7 @@ def DRAM_calculator_p(msa, mode=None, noise_threshold=4):
 
     table = load_scoredata()
 
-    resolver = max if mode is OPTIMISTIC else min
+    resolver = max if mode == OPTIMISTIC else min
 
     r = []
     for seq in msa:
