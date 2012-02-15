@@ -228,12 +228,16 @@ function cSM2partialSMs(_scoreMatrix)
 
 // -------------------------------------------------------------------------- //
 
-function computeExcpectedPerBaseScore () {
+function computeExcpectedPerBaseScore (_expectedHomology) {
     meanScore = 0;
     
     for (_aa1 = 0; _aa1 < 20; _aa1 += 1) {
         for (_aa2 = 0; _aa2 < 20; _aa2 += 1) {
-            meanScore += _cdnaln_protScoreMatrix[_aa1][_aa2] * _cdaln_base_frequencies[_aa1] * _cdaln_base_frequencies[_aa2];
+            if (_aa2 != _aa1) {
+                meanScore += (1-_expectedHomology) * _cdnaln_protScoreMatrix[_aa1][_aa2] * _cdaln_base_frequencies[_aa1] * _cdaln_base_frequencies[_aa2];
+            } else {
+                meanScore += _expectedHomology * _cdnaln_protScoreMatrix[_aa1][_aa1] * _cdaln_base_frequencies[_aa1] ^ 2;
+            }
         }
     }
     
@@ -394,7 +398,7 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
     {
         _cdnaln_outstr * ",";
     }
-    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseq + "\"," + _cdnaln_score + "," + _cdnaln_cleanseqs["overlap"] + "," + (_cdnaln_score/_cdnaln_cleanseqs["overlap"]-computeExcpectedPerBaseScore()) + "]" );
+    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseq + "\"," + _cdnaln_cleanseqs["overlap"] + "," + (_cdnaln_score/_cdnaln_cleanseqs["overlap"]-computeExcpectedPerBaseScore()) + "]" );
 }
 
 _cdnaln_outstr * "]";
