@@ -29,10 +29,10 @@ class CodonAligner(HyphyMap):
             raise ValueError("Invalid batchfile `%s', it doesn't exist!" % batchfile)
         super(CodonAligner, self).__init__(batchfile, retvar)
 
-    def __call__(self, refseq, seqs, revcomp=False, quiet=True):
-        return CodonAligner.align(self, refseq, seqs, revcomp, quiet)
+    def __call__(self, refseq, seqs, revcomp=False, expected_identity=0.6, quiet=True):
+        return CodonAligner.align(self, refseq, seqs, revcomp, expected_identity, quiet)
 
-    def align(self, refseq, seqs, revcomp=False, quiet=True):
+    def align(self, refseq, seqs, revcomp=False, expected_identity=0.6, quiet=True):
         # if we have no sequences, abort early to prevent later errors
         if not len(seqs):
             return [], []
@@ -61,7 +61,7 @@ class CodonAligner(HyphyMap):
             else:
                 upr = min(numseqs, lwr + seqs_per_node)
             node_seqs = [s.upper() for s in seqs[lwr:upr]]
-            argslist.append( [arg1, refseq, len(node_seqs)] + node_seqs )
+            argslist.append( [arg1, refseq, expected_identity, len(node_seqs)] + node_seqs )
 
         retstrs = self.map(argslist, quiet)
 
@@ -69,6 +69,7 @@ class CodonAligner(HyphyMap):
         for retstr in retstrs:
             seqscores.extend(json.loads(retstr))
 
-        newseqstrs, overlap, homology = zip(*seqscores)
 
-        return list(newseqstrs), list(overlap), list (homology)
+        newseqstrs, scores, overlaps, homologies = zip(*seqscores)
+
+        return list(newseqstrs), list(scores), list(overlaps), list(homologies)

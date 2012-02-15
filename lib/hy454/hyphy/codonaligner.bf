@@ -71,7 +71,7 @@ function CleanAlignment( _aln, _keepIns )
     }
     _k = 0;
     _overlap_count = 0;
-    
+
     // codon by codon...
     _newRefLen = Abs( _newRef );
     for ( _l = 0; _l < _newRefLen; _l += 3 ) {
@@ -96,8 +96,8 @@ function CleanAlignment( _aln, _keepIns )
         if ( ( _keepIns * _ins ) == 3 || ( _ins == 0 && _dels == 0 ) ) {
             _newStr * _seq[ _k ][ _k+2 ];
             _k += 3;
-            
-            _overlap_count += 3*( _seq[ _k ][ _k+2 ] != "---" );
+
+            _overlap_count += 3 * ( _seq[ _k ][ _k+2 ] != "---" );
         }
         // if neither of those two cases is true, then we need to go
         // position by position, removing insertions and
@@ -121,7 +121,7 @@ function CleanAlignment( _aln, _keepIns )
                     if ( _altRef[ _k+_l2 ] != "-" ) {
                         _newStr * _seq[ _k+_l2 ];
                         _k2 += 1;
-                        _overlap_count += (_seq[ _k+_l2 ] != "-");
+                        _overlap_count += ( _seq[ _k+_l2 ] != "-" );
                     }
                 }
             }
@@ -134,7 +134,7 @@ function CleanAlignment( _aln, _keepIns )
     // _newStr2 = _newStr^{{"[-]", ""}};
     return { "ref": Uppercase( _newRef ),
              "seq": Uppercase( _newStr[0][ _newRefLen ] ),
-             "overlap": _overlap_count/3};
+             "overlap": _overlap_count / 3 };
 }
 
 function pSM2cSM(_protScoreMatrix, _protLetters)
@@ -228,19 +228,19 @@ function cSM2partialSMs(_scoreMatrix)
 
 // -------------------------------------------------------------------------- //
 
-function computeExcpectedPerBaseScore (_expectedHomology) {
+function computeExpectedPerBaseScore( _expectedIdentity ) {
     meanScore = 0;
-    
+
     for (_aa1 = 0; _aa1 < 20; _aa1 += 1) {
         for (_aa2 = 0; _aa2 < 20; _aa2 += 1) {
-            if (_aa2 != _aa1) {
-                meanScore += (1-_expectedHomology) * _cdnaln_protScoreMatrix[_aa1][_aa2] * _cdaln_base_frequencies[_aa1] * _cdaln_base_frequencies[_aa2];
+            if ( _aa1 != _aa2 ) {
+                meanScore += ( 1 - _expectedIdentity ) * _cdnaln_protScoreMatrix[_aa1][_aa2] * _cdnaln_base_frequencies[_aa1] * _cdnaln_base_frequencies[_aa2];
             } else {
-                meanScore += _expectedHomology * _cdnaln_protScoreMatrix[_aa1][_aa1] * _cdaln_base_frequencies[_aa1] ^ 2;
+                meanScore += _expectedIdentity * _cdnaln_protScoreMatrix[_aa1][_aa1] * _cdnaln_base_frequencies[_aa1]; // should this last value be squared?
             }
         }
     }
-    
+
     return meanScore;
 }
 
@@ -279,35 +279,36 @@ _cdnaln_protScoreMatrix =
  {-7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7,  1}
 };
 
-_cdaln_base_frequencies = {
-{   0.060490222}
-{   0.020075899}
-{   0.042109048}
-{   0.071567447}
-{   0.028809447}
-{   0.072308239}
-{   0.022293943}
-{   0.069730629}
-{   0.056968211}
-{   0.098851122}
-{   0.019768318}
-{   0.044127815}
-{   0.046025282}
-{   0.053606488}
-{   0.066039665}
-{    0.05060433}
-{   0.053636813}
-{   0.061625237}
-{   0.033011601}
-{   0.028350243}
+_cdnaln_base_frequencies = {
+{0.060490222}
+{0.020075899}
+{0.042109048}
+{0.071567447}
+{0.028809447}
+{0.072308239}
+{0.022293943}
+{0.069730629}
+{0.056968211}
+{0.098851122}
+{0.019768318}
+{0.044127815}
+{0.046025282}
+{0.053606488}
+{0.066039665}
+{0.050604330}
+{0.053636813}
+{0.061625237}
+{0.033011601}
+{0.028350243}
 };
 
 
 ChoiceList ( _cdnaln_dorevcomp, "Align reverse complement?", 1, SKIP_NONE,
              "No", "Do not check reverse complement",
              "Yes", "Check reverse complement" );
-             
+
 fscanf( stdin, "String", _cdnaln_refseq );
+fscanf( stdin, "Number", _cdnaln_expected_identity );
 fscanf( stdin, "Number", _cdnaln_numseqs );
 _cdnaln_seqs = {};
 
@@ -323,7 +324,7 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 ) {
 }
 
 // Due to some bugs in the implementation of the codon aligner,
-// pad the reference sequence to a multiple of 3, 
+// pad the reference sequence to a multiple of 3,
 _cdnaln_truelen = Abs( _cdnaln_refseq );
 _cdnaln_pad = 3 - ( _cdnaln_truelen % 3 );
 if ( _cdnaln_pad > 0 && _cdnaln_pad < 3 ) {
@@ -358,10 +359,12 @@ _cdnaln_outstr * 256;
 _cdnaln_outstr = "[";
 // _cdnaln_scores = { 1, Abs( _cdnaln_seqs ) };
 
+_cdnaln_expected_identity_score = computeExpectedPerBaseScore( _cdnaln_expected_identity );
+
 for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
 {
     // get the input sequence length, so we can normalize the score later
-    _cdnaln_seqlen = Abs( _cdnaln_seqs[ _cdnaln_idx ] );
+    _cdnaln_seqlen = Abs( _cdnaln_seqs[ _cdnaln_idx ] ) / 3;
     // align the sequences and get the score
     _cdnaln_inseqs = {{ _cdnaln_refseq, _cdnaln_seqs[ _cdnaln_idx ] }};
     AlignSequences ( _cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts );
@@ -370,11 +373,11 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
     if ( _cdnaln_dorevcomp ) {
         // if we are going to check the reverse complement:
         // once again align the sequences ( this time with the reverse complement )
-        
+
         _cdnaln_inseqs_rc = {{ _cdnaln_refseq, RevComp( _cdnaln_seqs[ _cdnaln_idx ] ) }};
         AlignSequences( _cdnaln_alnseqs_rc, _cdnaln_inseqs_rc, _cdnaln_alnopts );
         // divide the score by the length of the input sequence (which is assumed to be gapless)
-        _cdnaln_score_rc = ( _cdnaln_alnseqs_rc[0] )[0] / Abs( ( _cdnaln_alnseqs_rc[0] )[1] );
+        _cdnaln_score_rc = ( _cdnaln_alnseqs_rc[0] )[0] / _cdnaln_seqlen;
         if ( _cdnaln_score_rc > _cdnaln_score ) {
             // if the reverse complement score is greater than the regular score, use it instead
             _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs_rc, 0 );
@@ -384,7 +387,7 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
             _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
         }
     } else {
-        // if we are Not checking the reverse complement, just score the result
+        // if we are not checking the reverse complement, just score the result
         _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
     }
 
@@ -398,7 +401,8 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
     {
         _cdnaln_outstr * ",";
     }
-    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseq + "\"," + _cdnaln_cleanseqs["overlap"] + "," + (_cdnaln_score/_cdnaln_cleanseqs["overlap"]-computeExcpectedPerBaseScore()) + "]" );
+    _cdnaln_identity_score = _cdnaln_score - _cdnaln_expected_identity_score;
+    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseq + "\"," + _cdnaln_score + "," + _cdnaln_cleanseqs["overlap"] + "," + _cdnaln_identity_score + "]" );
 }
 
 _cdnaln_outstr * "]";

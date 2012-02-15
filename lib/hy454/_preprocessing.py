@@ -67,7 +67,7 @@ def determine_refseq(seqrecords, mode):
 
 def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
 
-    aligned, scores = CodonAligner()(str(refseq.seq), [str(s.seq) for s in seqrecords], revcomp, quiet)
+    aligned, _, _, _ = CodonAligner()(str(refseq.seq), [str(s.seq) for s in seqrecords], revcomp, quiet)
 
     # deepcopy the seqrecords so that we can change their sequences later
     alignrecords = deepcopy(seqrecords)
