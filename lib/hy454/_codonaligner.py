@@ -70,6 +70,7 @@ class CodonAligner(HyphyMap):
         for retstr in retstrs:
             seqscores.extend(json.loads(retstr))
 
+
         newseqstrs, scores, overlaps, homologies = zip(*seqscores)
 
         return list(newseqstrs), list(scores), list(overlaps), list(homologies)
