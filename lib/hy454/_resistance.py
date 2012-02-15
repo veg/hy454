@@ -156,7 +156,8 @@ def DRAM_calculator_p(msa, mode=None, noise_threshold=4):
                 coord_groups = drugdata(ambiglist)
                 # now grab either the min or max from these sublists,
                 # depending on how optimistic or pessimistic we are being
-                coord_score_ndegens = resolver(coord_groups, key=itemgetter(1))
+                # and use a generator as we can calculate in a single pass
+                coord_score_ndegens = (resolver(g, key=itemgetter(1)) for g in coord_groups)
                 # grab some stats, in a single pass
                 covered, missing, noise, score = 0, 0, 0, 0
                 for _, s, n in coord_score_ndegens:
