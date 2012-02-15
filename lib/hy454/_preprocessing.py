@@ -65,17 +65,20 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def align_to_refseq(refseq, seqrecords, revcomp=True, quiet=False):
-
-    aligned, _, _, _ = CodonAligner()(str(refseq.seq), [str(s.seq) for s in seqrecords], revcomp, quiet)
+def align_to_refseq(refseq, seqrecords, homology_filter=None, revcomp=True, quiet=False):
+    aligned, scores, overlaps, homologies = CodonAligner()(str(refseq.seq), [str(s.seq) for s in seqrecords], revcomp,homology_filter, quiet)
 
     # deepcopy the seqrecords so that we can change their sequences later
-    alignrecords = deepcopy(seqrecords)
-
+    alignrecords = []
+    dropped_records = []
     for i, aln in enumerate(aligned):
-        alignrecords[i].seq = Seq(aln, generic_nucleotide)
+        if homology_filter is not None and homologies[i] < 0: 
+            dropped_records.append (deepcopy(seqrecords[i]))
+            continue
+        alignrecords.append (deepcopy(seqrecords[i]))
+        alignrecords [-1].seq = Seq(aln, generic_nucleotide)
 
-    return MultipleSeqAlignment(alignrecords)
+    return MultipleSeqAlignment(alignrecords),dropped_records
 
 
 def from_positional(datastruct):

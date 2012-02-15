@@ -50,6 +50,7 @@ class CodonAligner(HyphyMap):
 
         argslist = []
         lwr, upr = 0, 0
+        
         for i in range(numnodes):
             # since our traversal is stateful, keep these cursors
             # around. During the first remainder iterations,
