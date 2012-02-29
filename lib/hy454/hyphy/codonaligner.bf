@@ -139,91 +139,114 @@ function CleanAlignment( _aln, _keepIns )
 
 function pSM2cSM(_protScoreMatrix, _protLetters)
 {
-    LoadFunctionLibrary ("chooseGeneticCode", {"00":"Universal"});
-    LoadFunctionLibrary ("GrabBag");
+    LoadFunctionLibrary( "chooseGeneticCode", { "00": "Universal" } );
+    LoadFunctionLibrary( "GrabBag" );
 
-    _scoreMatrix  = {65,65};
-    _mapping      = mapStrings (_hyphyAAOrdering, _protLetters);
-
-    for (_k = 0; _k < 64; _k += 1)
-    {
-        _mappedK = _mapping[_Genetic_Code[_k]];
-        if (_mappedK >= 0)
-        {
-            for (_k2 = _k; _k2 < 64; _k2 += 1)
-            {
-                _mappedK2 = _mapping[_Genetic_Code[_k2]];
-                if (_mappedK2 >= 0)
-                {
-                    _aScore = _protScoreMatrix[_mappedK][_mappedK2];
-                    if (_mappedK == _mappedK2 && _k2 > _k)
-                    {
+    _scoreMatrix  = { 65,65 };
+    _mapping      = mapStrings( _hyphyAAOrdering, _protLetters );
+    for ( _k = 0; _k < 64; _k += 1 ) {
+        _mappedK = _mapping[ _Genetic_Code[ _k ] ];
+        if ( _mappedK >= 0) {
+            for ( _k2 = _k; _k2 < 64; _k2 += 1 ) {
+                _mappedK2 = _mapping[ _Genetic_Code[ _k2 ] ];
+                if ( _mappedK2 >= 0 ) {
+                    _aScore = _protScoreMatrix[ _mappedK ][ _mappedK2 ];
+                    if ( _mappedK == _mappedK2 && _k2 > _k ) {
                         _aScore = _aScore - 1;
                     }
+                } else {
+                    // stop codons don't match anything
+                    _aScore = -1e4;
                 }
-                else
-                {
-                    _aScore = -10000;
-                }
-                _scoreMatrix[_k][_k2] = _aScore;
-                _scoreMatrix[_k2][_k] = _aScore;
+                _scoreMatrix[ _k ][ _k2 ] = _aScore;
+                _scoreMatrix[ _k2 ][ _k ] = _aScore;
             }
-        }
-        else
-        {
-            for (_k2 = _k; _k2 < 64; _k2 += 1)
-            {
-                _scoreMatrix[_k][_k2] = -10000;
-                _scoreMatrix[_k2][_k] = -10000;
+        } else {
+            for ( _k2 = _k; _k2 < 64; _k2 += 1 ) {
+                _mappedK2 = _mapping[ _Genetic_Code[ _k2 ] ];
+                if ( _mappedK2 < 0 ) {
+                    // don't penalize stop codons matching themselves
+                    _scoreMatrix[ _k ][ _k2 ] = 0;
+                    _scoreMatrix[ _k2 ][ _k ] = 0;
+                } else {
+                    _scoreMatrix[ _k ][ _k2 ] = -1e4;
+                    _scoreMatrix[ _k2 ][ _k ] = -1e4;
+                }
             }
         }
     }
+
     return _scoreMatrix;
 }
 
 function cSM2partialSMs(_scoreMatrix)
 {
-    m3x2  =  {65,48};
-    m3x1  =  {65,12};
+    m3x5  =  { 65, 640 };
+    m3x4  =  { 65, 256 };
+    m3x2  =  { 65,  48 };
+    m3x1  =  { 65,  12 };
 
-    for (thisCodon = 0; thisCodon < 64; thisCodon += 1)
-    {
-        for (d1 = 0; d1 < 4; d1 += 1)
-        {
+    // minor penalties to make mismatch not entirely free
+    p3x5 = 0;
+    p3x4 = 0;
+    p3x2 = 0;
+    p3x1 = 0;
+
+    for ( thisCodon = 0; thisCodon < 64; thisCodon += 1 ) {
+        for ( d1 = 0; d1 < 4; d1 += 1 ) {
             max100 = -1e100;
             max010 = -1e100;
             max001 = -1e100;
 
-            for (d2 = 0; d2 < 4; d2 += 1)
-            {
-                partialCodon = 4*d1 + d2;
-                t = 16*d1 + d2;
+            for ( d2 = 0; d2 < 4; d2 += 1 ) {
+                partialCodon = 4 * d1 + d2;
                 max110 = -1e100;
                 max101 = -1e100;
                 max011 = -1e100;
 
-                for (d3 = 0; d3 < 4; d3 += 1)
-                {
+                for ( d3 = 0; d3 < 4; d3 += 1 ) {
+                    thisCodon2 = 4 * partialCodon + d3;
+                    thisScore = _scoreMatrix[ thisCodon ][ thisCodon2 ];
+
+                    // this is the trivial and stupid way of doing it, but it should work
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 0 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 1 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 2 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 3 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 4 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 5 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 6 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 7 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 8 ] = thisScore - p3x5;
+                    m3x5[ thisCodon ][ 10 * thisCodon2 + 9 ] = thisScore - p3x5;
+
+                    m3x4[ thisCodon ][ 4 * thisCodon2 + 0 ] = thisScore - p3x4;
+                    m3x4[ thisCodon ][ 4 * thisCodon2 + 1 ] = thisScore - p3x4;
+                    m3x4[ thisCodon ][ 4 * thisCodon2 + 2 ] = thisScore - p3x4;
+                    m3x4[ thisCodon ][ 4 * thisCodon2 + 3 ] = thisScore - p3x4;
+
                     // d1 is 1
-                    max100 =  Max(max100,_scoreMatrix[thisCodon][d1*16+d2*4+d3]);
-                    max010 =  Max(max010,_scoreMatrix[thisCodon][d2*16+d1*4+d3]);
-                    max001 =  Max(max001,_scoreMatrix[thisCodon][d2*16+d3*4+d1]);
+                    max100 = Max( max100, _scoreMatrix[ thisCodon ][ 16 * d1 + 4 * d2 + d3 ] );
+                    max010 = Max( max010, _scoreMatrix[ thisCodon ][ 16 * d2 + 4 * d1 + d3 ] );
+                    max001 = Max( max001, _scoreMatrix[ thisCodon ][ 16 * d2 + 4 * d3 + d1 ] );
 
                     // d1 and d2 are 1
-                    max110 = Max(max110,_scoreMatrix[thisCodon][4*partialCodon + d3]);
-                    max101 = Max(max101,_scoreMatrix[thisCodon][t + 4*d3]);
-                    max011 = Max(max011,_scoreMatrix[thisCodon][partialCodon + 16*d3]);
+                    max110 = Max( max110, _scoreMatrix[ thisCodon ][ 16 * d1 + 4 * d2 + d3 ] );
+                    max101 = Max( max101, _scoreMatrix[ thisCodon ][ 16 * d1 + 4 * d3 + d2 ] );
+                    max011 = Max( max011, _scoreMatrix[ thisCodon ][ 16 * d3 + 4 * d1 + d2 ] );
                 }
-                m3x2[thisCodon][3*partialCodon]   = max110;
-                m3x2[thisCodon][3*partialCodon+1] = max101;
-                m3x2[thisCodon][3*partialCodon+2] = max011;
+
+                m3x2[ thisCodon ][ 3 * partialCodon + 0 ] = max110 - p3x2;
+                m3x2[ thisCodon ][ 3 * partialCodon + 1 ] = max101 - p3x2;
+                m3x2[ thisCodon ][ 3 * partialCodon + 2 ] = max011 - p3x2;
             }
-            m3x1[thisCodon][3*d1]   = max100;
-            m3x1[thisCodon][3*d1+1] = max010;
-            m3x1[thisCodon][3*d1+2] = max001;
+
+            m3x1[ thisCodon ][ 3 * d1 + 0 ] = max100 - p3x1;
+            m3x1[ thisCodon ][ 3 * d1 + 1 ] = max010 - p3x1;
+            m3x1[ thisCodon ][ 3 * d1 + 2 ] = max001 - p3x1;
         }
     }
-    return {"3x1": m3x1, "3x2": m3x2};
+    return { "3x1": m3x1, "3x2": m3x2, "3x4": m3x4, "3x5": m3x5 };
 }
 
 // -------------------------------------------------------------------------- //
@@ -307,12 +330,16 @@ ChoiceList ( _cdnaln_dorevcomp, "Align reverse complement?", 1, SKIP_NONE,
              "No", "Do not check reverse complement",
              "Yes", "Check reverse complement" );
 
+// fprintf( stdout, "Please provide the reference sequence: " );
 fscanf( stdin, "String", _cdnaln_refseq );
+// fprintf( stdout, "Please provide the expected identity: " );
 fscanf( stdin, "Number", _cdnaln_expected_identity );
+// fprintf( stdout, "Please provide the number of query sequences: " );
 fscanf( stdin, "Number", _cdnaln_numseqs );
 _cdnaln_seqs = {};
 
 for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 ) {
+    // fprintf( stdout, "Please provide query sequence no. " + ( _cdnaln_idx + 1 ) + ": " );
     fscanf( stdin, "String", _cdnaln_grabseq );
     _cdnaln_seqs[ _cdnaln_idx ] = _cdnaln_grabseq;
 }
@@ -346,13 +373,15 @@ _cdnaln_alnopts ["SEQ_ALIGN_GAP_EXTEND2"] = 1;
 _cdnaln_alnopts ["SEQ_ALIGN_GAP_EXTEND"] = 10;
 _cdnaln_alnopts ["SEQ_ALIGN_FRAMESHIFT"] = -2*Min(_cdnaln_protScoreMatrix,0);
 _cdnaln_alnopts ["SEQ_ALIGN_CODON_ALIGN"] = 1;
-_cdnaln_alnopts ["SEQ_ALIGN_NO_TP"] = 1;
+_cdnaln_alnopts ["SEQ_ALIGN_NO_TP"] = 1; // this means local alignment, apparently
 _cdnaln_alnopts ["SEQ_ALIGN_CHARACTER_MAP"] = "ACGT";
 
 _cdnaln_partialScoreMatrices = cSM2partialSMs(_cdnaln_scoreMatrix);
 
 _cdnaln_alnopts ["SEQ_ALIGN_PARTIAL_3x1_SCORES"] = _cdnaln_partialScoreMatrices["3x1"];
 _cdnaln_alnopts ["SEQ_ALIGN_PARTIAL_3x2_SCORES"] = _cdnaln_partialScoreMatrices["3x2"];
+_cdnaln_alnopts ["SEQ_ALIGN_PARTIAL_3x4_SCORES"] = _cdnaln_partialScoreMatrices["3x4"];
+_cdnaln_alnopts ["SEQ_ALIGN_PARTIAL_3x5_SCORES"] = _cdnaln_partialScoreMatrices["3x5"];
 
 _cdnaln_outstr = "";
 _cdnaln_outstr * 256;
@@ -365,6 +394,8 @@ if ( _cdnaln_expected_identity > 0 ) {
     _cdnaln_expected_identity_score = computeExpectedPerBaseScore( _cdnaln_expected_identity );
 }
 
+// fprintf( stdout, "" + _cdnaln_numseqs + "\n" );
+
 for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
 {
     // get the input sequence length, so we can normalize the score later
@@ -372,6 +403,7 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
     // align the sequences and get the score
     _cdnaln_inseqs = {{ _cdnaln_refseq, _cdnaln_seqs[ _cdnaln_idx ] }};
     AlignSequences ( _cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts );
+    // fprintf( stdout, "\n" + ( _cdnaln_alnseqs[0] )[1] + "\n" + ( _cdnaln_alnseqs[0] )[2] + "\n" );
     // divide the score by the length of the input sequence (which is assumed to be gapless)
     _cdnaln_score = ( _cdnaln_alnseqs[0] )[0] / _cdnaln_seqlen;
     if ( _cdnaln_dorevcomp ) {
