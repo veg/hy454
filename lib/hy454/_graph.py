@@ -379,7 +379,7 @@ def graph_logo(
         fd, filename = mkstemp(); close(fd)
 
     if figsize is None:
-        figsize = (6, 6)
+        figsize = (3, 3)
 
     if labels is None:
         labels = ['%d' % (idx + 1) for idx in columns]
@@ -500,6 +500,9 @@ def graph_logo(
                 glyph.set_facecolor(colors[l])
                 glyph.set_linewidth(linewidth)
                 glyph.set_zorder(-1)
+
+    # set the remaining spine to show the maximum value
+    ax.spines['left'].set_bounds(0., max(bottoms))
 
     fig.savefig(filename, format=format, transparent=transparent, bbox_inches='tight', pad_inches=0.25)
 

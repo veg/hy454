@@ -79,7 +79,7 @@ def align_to_refseq(refseq, seqrecords, revcomp=True, expected_identity=0., quie
     discarded_records = []
     for i, aln in enumerate(aligned):
         old = seqrecords[i]
-        if expected_identity and identities[i] < 0:
+        if expected_identity > 0. and identities[i] < 0:
             discarded_records.append(old)
         else:
             new = SeqRecord(
