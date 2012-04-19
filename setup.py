@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import division, print_function
+
 import sys
 
 from os.path import abspath, join, split
@@ -22,10 +24,10 @@ setup(name='hy454',
             'data/fonts/ttf/*.ttf',
             'data/scores/*.dat'
     ]},
-      data_files=[('/usr/local/bin', [
-            'bin/codonaligner',
-            'bin/coveragegrapher',
-            'bin/seqlogo'
-      ])],
+      data_files=[
+            'scripts/codonaligner',
+            'scripts/coveragegrapher',
+            'scripts/seqlogo'
+      ],
       requires=['Bio', 'BioExt', 'fakemp', 'freetype', 'hypy', 'matplotlib', 'numpy']
      )
