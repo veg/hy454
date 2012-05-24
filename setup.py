@@ -24,7 +24,7 @@ setup(name='hy454',
             'data/fonts/ttf/*.ttf',
             'data/scores/*.dat'
     ]},
-      data_files=[
+      scripts=[
             'scripts/codonaligner',
             'scripts/coveragegrapher',
             'scripts/seqlogo'
