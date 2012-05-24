@@ -85,6 +85,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='align sequences to a reference using a codon alignment algorithm, returning FASTA by default'
     )
+
+    # --positional requires MSA form, which --insertions precludes
+    group = parser.add_mutually_exclusive_group()
+
     parser.add_argument(
         'input',
         metavar='FASTAFILE',
@@ -96,7 +100,8 @@ if __name__ == '__main__':
         choices=sorted(_refseqs.keys()),
         help='use a provided default reference sequence'
     )
-    parser.add_argument(
+    # add this to the mutually exclusive group
+    group.add_argument(
         '-p', '--positional',
         action='store_true',
         help='return JSON-formatted reference-relative codon positional format'
@@ -120,16 +125,12 @@ if __name__ == '__main__':
         type=argparse.FileType('w'),
         help='discarded sequences are sent to DISCARDFILE'
     )
-    parser.add_argument(
+    # add to the mutually exclusive group
+    group.add_argument(
         '-I', '--insertions',
         action='store_true',
         help='keep insertions (output is not an MSA)'
     )
-
-    # --positional requires MSA form, which --insertions precludes
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--positional', action='store_true')
-    group.add_argument('--insertions', action='store_true')
 
     args = None
     retcode = -1

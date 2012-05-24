@@ -1,5 +1,5 @@
 
-__version__ = '0.4.2'
+__version__ = '0.4.3'
 
 from ._annotate import *
 from ._codonaligner import *
