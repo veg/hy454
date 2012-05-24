@@ -66,12 +66,13 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def align_to_refseq(refseq, seqrecords, revcomp=True, expected_identity=0., quiet=False):
+def align_to_refseq(refseq, seqrecords, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
     aligned, _, _, identities = CodonAligner()(
         str(refseq.seq),
         [str(s.seq) for s in seqrecords],
         revcomp,
         expected_identity,
+        keep_insertions,
         quiet
     )
 
@@ -96,7 +97,10 @@ def align_to_refseq(refseq, seqrecords, revcomp=True, expected_identity=0., quie
             )
             aligned_records.append(new)
 
-    return MultipleSeqAlignment(aligned_records), discarded_records
+    if not keep_insertions:
+        return MultipleSeqAlignment(aligned_records), discarded_records
+
+    return aligned_records, discarded_records
 
 
 def from_positional(datastruct):

@@ -37,7 +37,7 @@ def positional_write(msa, fh):
     fh.write('\n')
 
 
-def main(infile=None, reference=None, outfile=None, positional=False, expected_identity=None, discardfile=None):
+def main(infile=None, reference=None, outfile=None, positional=False, expected_identity=None, keep_insertions=False, discardfile=None):
 
     if infile is None:
         infile = sys.stdin
@@ -48,7 +48,7 @@ def main(infile=None, reference=None, outfile=None, positional=False, expected_i
     if positional is True:
         write = positional_write
     else:
-        write = lambda msa, fh: AlignIO.write(msa, fh, 'fasta')
+        write = lambda msa, fh: SeqIO.write(msa, fh, 'fasta') if keep_insertions else AlignIO.write(msa, fh, 'fasta')
 
     if expected_identity is None:
         expected_identity = 0.
@@ -60,7 +60,7 @@ def main(infile=None, reference=None, outfile=None, positional=False, expected_i
     else:
         refseq = _refseqs[args.reference].load()
 
-    msa, discarded = align_to_refseq(refseq, seqrecords, expected_identity=expected_identity)
+    msa, discarded = align_to_refseq(refseq, seqrecords, expected_identity=expected_identity, keep_insertions=keep_insertions)
 
     write(msa, outfile)
 
@@ -120,12 +120,22 @@ if __name__ == '__main__':
         type=argparse.FileType('w'),
         help='discarded sequences are sent to DISCARDFILE'
     )
+    parser.add_argument(
+        '-I', '--insertions',
+        action='store_true',
+        help='keep insertions (output is not an MSA)'
+    )
+
+    # --positional requires MSA form, which --insertions precludes
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--positional', action='store_true')
+    group.add_argument('--insertions', action='store_true')
 
     args = None
     retcode = -1
     try:
         args = parser.parse_args()
-        retcode = main(args.input, args.reference, args.output, args.positional, args.identity, args.discard)
+        retcode = main(args.input, args.reference, args.output, args.positional, args.identity, args.insertions, args.discard)
     finally:
         if args is not None:
             if not args.input in (None, sys.stdin):

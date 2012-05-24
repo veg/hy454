@@ -330,6 +330,10 @@ ChoiceList ( _cdnaln_dorevcomp, "Align reverse complement?", 1, SKIP_NONE,
              "No", "Do not check reverse complement",
              "Yes", "Check reverse complement" );
 
+ChoiceList ( _cdnaln_keepins, "Keep insertions?", 1, SKIP_NONE,
+             "No", "Do not keep insertions",
+             "Yes", "Keep insertions" );
+
 // fprintf( stdout, "Please provide the reference sequence: " );
 fscanf( stdin, "String", _cdnaln_refseq );
 // fprintf( stdout, "Please provide the expected identity: " );
@@ -416,15 +420,15 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
         _cdnaln_score_rc = ( _cdnaln_alnseqs_rc[0] )[0] / _cdnaln_seqlen;
         if ( _cdnaln_score_rc > _cdnaln_score ) {
             // if the reverse complement score is greater than the regular score, use it instead
-            _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs_rc, 0 );
+            _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs_rc, _cdnaln_keepins );
             _cdnaln_score = _cdnaln_score_rc;
         } else {
             // otherwise just the regular score
-            _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
+            _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs, _cdnaln_keepins );
         }
     } else {
         // if we are not checking the reverse complement, just score the result
-        _cdnaln_cleanseqs = CleanAlignment(_cdnaln_alnseqs, 0);
+        _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs, _cdnaln_keepins );
     }
 
     // trim the sequence back to the true length (unpadded)
