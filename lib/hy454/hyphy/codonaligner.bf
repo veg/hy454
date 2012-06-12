@@ -431,10 +431,13 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
         _cdnaln_cleanseqs = CleanAlignment( _cdnaln_alnseqs, _cdnaln_keepins );
     }
 
-    // trim the sequence back to the true length (unpadded)
+    // trim the sequence back to the true length (unpadded) if we're not keeping insertions
     // and modify the alignment score to account for this
     _cdnaln_cleanseq = _cdnaln_cleanseqs[ "seq" ];
-    _cdnaln_cleanseq = _cdnaln_cleanseq[ 0 ][ ( _cdnaln_truelen - 1 ) ];
+    if ( ! _cdnaln_keepins )
+    {
+        _cdnaln_cleanseq = _cdnaln_cleanseq[ 0 ][ ( _cdnaln_truelen - 1 ) ];
+    }
     _cdnaln_score = _cdnaln_score * _cdnaln_scoremod;
 
     if (_cdnaln_idx > 0)
