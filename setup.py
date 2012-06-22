@@ -29,5 +29,5 @@ setup(name='hy454',
             'scripts/coveragegrapher',
             'scripts/seqlogo'
       ],
-      requires=['Bio', 'BioExt', 'fakemp', 'freetype', 'hypy', 'matplotlib', 'numpy']
+      requires=['Bio', 'BioExt', 'fakemp', 'freetype', 'hppy', 'matplotlib', 'numpy']
      )

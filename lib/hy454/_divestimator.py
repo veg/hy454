@@ -14,7 +14,7 @@ from textwrap import dedent
 from Bio.Seq import translate
 from Bio.Alphabet import generic_nucleotide
 
-from hypy import HyphyInterface, HyphyMap
+from hppy import HyphyInterface, HyphyMap
 
 
 __all__ = ['DiversityEstimator', 'Thresholds']
