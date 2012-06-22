@@ -1,4 +1,5 @@
 
+from __future__ import division, print_function
 
 from os.path import exists
 
@@ -16,7 +17,14 @@ class Basefont(object):
         if not exists(filepath):
             raise ValueError('No valid font file specified')
 
-        face = Face(filepath if isinstance(filepath, bytes) else filepath.encode('utf-8'))
+        try:
+            if isinstance(filepath, unicode):
+                filepath = filepath.encode('utf-8')
+        except NameError:
+            if not isinstance(filepath, bytes):
+                filepath = filepath.encode('utf-8')
+
+        face = Face(filepath)
         face.set_char_size(charsize * 64)
         self.face = face
         self.cache = {}
