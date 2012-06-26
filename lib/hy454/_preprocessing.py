@@ -18,7 +18,7 @@ from BioExt import _GAP, enumerate_by_codon
 
 from fakemp import farmout, farmworker
 
-from ._codonaligner import CodonAligner
+from ._aligner import Aligner
 
 
 __all__ = [
@@ -66,8 +66,8 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def align_to_refseq(refseq, seqrecords, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
-    aligned, _, _, identities = CodonAligner()(
+def align_to_refseq(refseq, seqrecords, codon=True, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
+    aligned, _, _, identities = Aligner(codon=codon)(
         str(refseq.seq),
         [str(s.seq) for s in seqrecords],
         revcomp,

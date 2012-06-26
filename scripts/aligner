@@ -37,7 +37,7 @@ def positional_write(msa, fh):
     fh.write('\n')
 
 
-def main(infile=None, reference=None, outfile=None, positional=False, expected_identity=None, keep_insertions=False, discardfile=None):
+def main(infile=None, reference=None, outfile=None, codon=True, positional=False, expected_identity=None, keep_insertions=False, discardfile=None):
 
     if infile is None:
         infile = sys.stdin
@@ -60,7 +60,13 @@ def main(infile=None, reference=None, outfile=None, positional=False, expected_i
     else:
         refseq = _refseqs[args.reference].load()
 
-    msa, discarded = align_to_refseq(refseq, seqrecords, expected_identity=expected_identity, keep_insertions=keep_insertions)
+    msa, discarded = align_to_refseq(
+        refseq,
+        seqrecords,
+        codon=codon,
+        expected_identity=expected_identity,
+        keep_insertions=keep_insertions
+    )
 
     write(msa, outfile)
 
@@ -113,6 +119,11 @@ if __name__ == '__main__':
         help='save alignment to OUTPUT'
     )
     parser.add_argument(
+        '-n', '--nocodon',
+        action='store_false',
+        help="don't use codon-aware alignment algorithm"
+    )
+    parser.add_argument(
         '-i', '--identity',
         metavar='PROBABILITY',
         type=probability,
@@ -136,7 +147,16 @@ if __name__ == '__main__':
     retcode = -1
     try:
         args = parser.parse_args()
-        retcode = main(args.input, args.reference, args.output, args.positional, args.identity, args.insertions, args.discard)
+        retcode = main(
+            args.input,
+            args.reference,
+            args.output,
+            args.nocodon,
+            args.positional,
+            args.identity,
+            args.insertions,
+            args.discard
+        )
     finally:
         if args is not None:
             if not args.input in (None, sys.stdin):

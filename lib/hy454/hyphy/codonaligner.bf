@@ -257,9 +257,9 @@ function computeExpectedPerBaseScore( _expectedIdentity ) {
     for (_aa1 = 0; _aa1 < 20; _aa1 += 1) {
         for (_aa2 = 0; _aa2 < 20; _aa2 += 1) {
             if ( _aa1 != _aa2 ) {
-                meanScore += ( 1 - _expectedIdentity ) * _cdnaln_protScoreMatrix[_aa1][_aa2] * _cdnaln_base_frequencies[_aa1] * _cdnaln_base_frequencies[_aa2];
+                meanScore += ( 1 - _expectedIdentity ) * _cdnaln_protScoreMatrix[_aa1][_aa2] * _cdnaln_base_freqs[_aa1] * _cdnaln_base_freqs[_aa2] * _cdnaln_pair_norm;
             } else {
-                meanScore += _expectedIdentity * _cdnaln_protScoreMatrix[_aa1][_aa1] * _cdnaln_base_frequencies[_aa1]; // should this last value be squared?
+                meanScore += _expectedIdentity * _cdnaln_protScoreMatrix[_aa1][_aa1] * _cdnaln_base_freqs[_aa1];
             }
         }
     }
@@ -302,7 +302,7 @@ _cdnaln_protScoreMatrix =
  {-7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7,  1}
 };
 
-_cdnaln_base_frequencies = {
+_cdnaln_base_freqs = {
 {0.060490222}
 {0.020075899}
 {0.042109048}
@@ -325,6 +325,11 @@ _cdnaln_base_frequencies = {
 {0.028350243}
 };
 
+_cdnaln_pair_norm = 0;
+for ( _aa1 = 0; _aa1 < 20; _aa1 += 1 ) {
+    _cdnaln_pair_norm += _cdnaln_base_freqs[ _aa1 ] * _cdnaln_base_freqs[ _aa1 ]; 
+}
+_cdnaln_pair_norm = 1 / ( 1 - _cdnaln_pair_norm );
 
 ChoiceList ( _cdnaln_dorevcomp, "Align reverse complement?", 1, SKIP_NONE,
              "No", "Do not check reverse complement",

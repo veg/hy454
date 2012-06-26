@@ -25,7 +25,7 @@ setup(name='hy454',
             'data/scores/*.dat'
     ]},
       scripts=[
-            'scripts/codonaligner',
+            'scripts/aligner',
             'scripts/coveragegrapher',
             'scripts/seqlogo'
       ],
