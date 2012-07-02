@@ -31,10 +31,10 @@ setup(name='hy454',
       ],
       requires=[
             'Bio (>=1.58)',
-            'BioExt (>=0.9.4)',
+            'BioExt (>=0.9.5)',
             'fakemp (>=0.9.1)',
             'freetype (>=0.3.3)',
-            'hppy (>=0.9.2)',
+            'hppy (>=0.9.3)',
             'matplotlib (>=1.2)',
             'numpy (>=1.6)'
       ]

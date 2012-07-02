@@ -98,9 +98,9 @@ function computeExpectedPerBaseScore( _expectedIdentity ) {
     for (_n1 = 0; _n1 < 4; _n1 += 1) {
         for (_n2 = 0; _n2 < 4; _n2 += 1) {
             if ( _n1 != _n2 ) {
-                meanScore += ( 1 - _expectedIdentity ) * _aln_nucScoreMatrix[_n1][_n2] * _aln_base_freqs[_n1] * _aln_base_freqs[_n2] * _aln_pair_norm;
+                meanScore += ( 1 - _expectedIdentity ) * _aln_scorematrix[_n1][_n2] * _aln_base_freqs[_n1] * _aln_base_freqs[_n2] * _aln_pair_norm;
             } else {
-                meanScore += _expectedIdentity * _aln_nucScoreMatrix[_n1][_n1] * _aln_base_freqs[_n1];
+                meanScore += _expectedIdentity * _aln_scorematrix[_n1][_n1] * _aln_base_freqs[_n1];
             }
         }
     }
@@ -115,13 +115,13 @@ function computeExpectedPerBaseScore( _expectedIdentity ) {
 
 
 
-_aln_nucScoreMatrix =
-{
- { 5, -4, -4, -4}
- {-4,  5, -4, -4}
- {-4, -4,  5, -4}
- {-4, -4, -4,  5}
-};
+// _aln_scorematrix =
+// {
+//  { 5, -4, -4, -4}
+//  {-4,  5, -4, -4}
+//  {-4, -4,  5, -4}
+//  {-4, -4, -4,  5}
+// };
 
 // 40% GC content
 _aln_base_freqs = {
@@ -166,14 +166,14 @@ for ( _aln_idx = 0; _aln_idx < _aln_numseqs; _aln_idx += 1 ) {
 }
 
 _aln_alnopts = {};
-_aln_alnopts ["SEQ_ALIGN_SCORE_MATRIX"] = _aln_nucScoreMatrix;
+_aln_alnopts ["SEQ_ALIGN_SCORE_MATRIX"] = _aln_scorematrix;
 _aln_alnopts ["SEQ_ALIGN_GAP_OPEN"] = 40;
 _aln_alnopts ["SEQ_ALIGN_AFFINE"] = 1;
 _aln_alnopts ["SEQ_ALIGN_GAP_OPEN2"] = 20;
 _aln_alnopts ["SEQ_ALIGN_GAP_EXTEND2"] = 1;
 _aln_alnopts ["SEQ_ALIGN_GAP_EXTEND"] = 10;
 _aln_alnopts ["SEQ_ALIGN_NO_TP"] = 1; // this means local alignment, apparently
-_aln_alnopts ["SEQ_ALIGN_CHARACTER_MAP"] = "ACGT";
+_aln_alnopts ["SEQ_ALIGN_CHARACTER_MAP"] = _aln_letters;
 
 _aln_outstr = "";
 _aln_outstr * 256;
