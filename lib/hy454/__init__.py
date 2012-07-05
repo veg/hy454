@@ -1,8 +1,8 @@
 
-__version__ = '0.4.3'
+__version__ = '0.5.2'
 
+from ._aligner import *
 from ._annotate import *
-from ._codonaligner import *
 from ._common import *
 from ._compensatory import *
 from ._divestimator import *
@@ -16,8 +16,8 @@ from ._variants import *
 
 
 __all__ = []
+__all__ += _aligner.__all__
 __all__ += _annotate.__all__
-__all__ += _codonaligner.__all__
 __all__ += _common.__all__
 __all__ += _compensatory.__all__
 __all__ += _divestimator.__all__

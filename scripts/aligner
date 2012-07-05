@@ -9,10 +9,17 @@ from os.path import exists
 
 from Bio import SeqIO, AlignIO
 
-from BioExt import hxb2, nl4_3
+from BioExt import hxb2, nl4_3, BLOSUM62, HIV_BETWEEN_F, PAM200, PAM250
 
 from hy454 import align_to_refseq, to_positional
 
+
+_scorematrices = {
+    'BLOSUM62': BLOSUM62,
+    'HIV_BETWEEN_F': HIV_BETWEEN_F,
+    'PAM200': PAM200,
+    'PAM250': PAM250
+}
 
 _refseqs = {
     'HXB2_env': hxb2.env,
@@ -37,7 +44,7 @@ def positional_write(msa, fh):
     fh.write('\n')
 
 
-def main(infile=None, reference=None, outfile=None, positional=False, expected_identity=None, keep_insertions=False, discardfile=None):
+def main(infile=None, reference=None, scorematrix=None, outfile=None, codon=True, positional=False, expected_identity=None, keep_insertions=False, discardfile=None):
 
     if infile is None:
         infile = sys.stdin
@@ -60,7 +67,19 @@ def main(infile=None, reference=None, outfile=None, positional=False, expected_i
     else:
         refseq = _refseqs[args.reference].load()
 
-    msa, discarded = align_to_refseq(refseq, seqrecords, expected_identity=expected_identity, keep_insertions=keep_insertions)
+    if scorematrix is None:
+        sm = BLOSUM62.load()
+    else:
+        sm = _scorematrices[scorematrix].load()
+
+    msa, discarded = align_to_refseq(
+        refseq,
+        seqrecords,
+        scorematrix=sm,
+        codon=codon,
+        expected_identity=expected_identity,
+        keep_insertions=keep_insertions
+    )
 
     write(msa, outfile)
 
@@ -100,6 +119,12 @@ if __name__ == '__main__':
         choices=sorted(_refseqs.keys()),
         help='use a provided default reference sequence'
     )
+    parser.add_argument(
+        '-s', '--scorematrix',
+        choices=sorted(_scorematrices.keys()),
+        default='BLOSUM62',
+        help='use a specific scoring matrix [default=BLOSUM62]'
+    )
     # add this to the mutually exclusive group
     group.add_argument(
         '-p', '--positional',
@@ -111,6 +136,11 @@ if __name__ == '__main__':
         type=argparse.FileType('w'),
         default=sys.stdout,
         help='save alignment to OUTPUT'
+    )
+    parser.add_argument(
+        '-n', '--nocodon',
+        action='store_false',
+        help="don't use codon-aware alignment algorithm"
     )
     parser.add_argument(
         '-i', '--identity',
@@ -136,7 +166,17 @@ if __name__ == '__main__':
     retcode = -1
     try:
         args = parser.parse_args()
-        retcode = main(args.input, args.reference, args.output, args.positional, args.identity, args.insertions, args.discard)
+        retcode = main(
+            args.input,
+            args.reference,
+            args.scorematrix,
+            args.output,
+            args.nocodon,
+            args.positional,
+            args.identity,
+            args.insertions,
+            args.discard
+        )
     finally:
         if args is not None:
             if not args.input in (None, sys.stdin):

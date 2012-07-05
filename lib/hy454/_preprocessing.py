@@ -14,11 +14,11 @@ from Bio.Alphabet import generic_nucleotide
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from BioExt import _GAP, enumerate_by_codon
+from BioExt import _GAP, BLOSUM62, enumerate_by_codon
 
 from fakemp import farmout, farmworker
 
-from ._codonaligner import CodonAligner
+from ._aligner import Aligner
 
 
 __all__ = [
@@ -66,10 +66,13 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def align_to_refseq(refseq, seqrecords, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
-    aligned, _, _, identities = CodonAligner()(
+def align_to_refseq(refseq, seqrecords, scorematrix=None, codon=True, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
+    if scorematrix is None:
+        scorematrix = BLOSUM62.load()
+    aligned, _, _, identities = Aligner(codon=codon)(
         str(refseq.seq),
         [str(s.seq) for s in seqrecords],
+        scorematrix,
         revcomp,
         expected_identity,
         keep_insertions,

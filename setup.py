@@ -25,9 +25,17 @@ setup(name='hy454',
             'data/scores/*.dat'
     ]},
       scripts=[
-            'scripts/codonaligner',
+            'scripts/aligner',
             'scripts/coveragegrapher',
             'scripts/seqlogo'
       ],
-      requires=['Bio', 'BioExt', 'fakemp', 'freetype', 'hppy', 'matplotlib', 'numpy']
+      requires=[
+            'Bio (>=1.58)',
+            'BioExt (>=0.9.5)',
+            'fakemp (>=0.9.1)',
+            'freetype (>=0.3.3)',
+            'hppy (>=0.9.3)',
+            'matplotlib (>=1.2)',
+            'numpy (>=1.6)'
+      ]
      )
