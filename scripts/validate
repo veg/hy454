@@ -6,11 +6,11 @@ import argparse, sys
 
 from json import dump as json_dump
 
-from Bio import SeqIO, AlignIO
+from Bio import SeqIO
 
 from BioExt import hxb2, nl4_3, BLOSUM62, HIV_BETWEEN_F, PAM200, PAM250
 
-from hy454 import align_to_refseq, to_positional, validate
+from hy454 import to_positional, validate
 
 
 _score_matrices = {
@@ -61,8 +61,18 @@ def main(reference=None, infile=None, score_matrix=None, outfile=None, codon=Tru
         expected_identity = 0.
     '''
 
+    refrecords = [r for r in SeqIO.parse(reference, 'fasta')]
     seqrecords = [r for r in SeqIO.parse(infile, 'fasta')]
-    validate(reference, seqrecords, score_matrix=score_matrix, mismatch=mismatch, codon=codon, revcomp=False, expected_identity=expected_identity, keep_insertions=keep_insertions, quiet=False)
+
+    validate(refrecords, 
+        seqrecords, 
+        score_matrix=score_matrix, 
+        mismatch=mismatch, 
+        codon=codon, 
+        revcomp=False, 
+        expected_identity=expected_identity, 
+        keep_insertions=keep_insertions, 
+        quiet=False) 
 
     '''
     if reference is None:
