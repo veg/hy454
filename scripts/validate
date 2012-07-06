@@ -12,7 +12,6 @@ from BioExt import hxb2, nl4_3, BLOSUM62, HIV_BETWEEN_F, PAM200, PAM250
 
 from hy454 import to_positional, validate
 
-
 _score_matrices = {
     'BLOSUM62': BLOSUM62,
     'HIV_BETWEEN_F': HIV_BETWEEN_F,
@@ -20,30 +19,21 @@ _score_matrices = {
     'PAM250': PAM250
 }
 
-_refseqs = {
-    'HXB2_env': hxb2.env,
-    'HXB2_gag': hxb2.gag,
-    'HXB2_int': hxb2.int,
-    'HXB2_nef': hxb2.nef,
-    'HXB2_pol': hxb2.pol,
-    'HXB2_pr': hxb2.pr,
-    'HXB2_prrt': hxb2.prrt,
-    'HXB2_rev': hxb2.rev,
-    'HXB2_rt': hxb2.rt,
-    'HXB2_tat': hxb2.tat,
-    'HXB2_vif': hxb2.vif,
-    'HXB2_vpr': hxb2.vpr,
-    'HXB2_vpu': hxb2.vpu,
-    'NL4-3_prrt': nl4_3.prrt
-}
-
-
 def positional_write(msa, fh):
     json_dump(to_positional(msa), fh, separators=(',', ':'))
     fh.write('\n')
 
 
-def main(reference=None, infile=None, score_matrix=None, outfile=None, codon=True, positional=False, expected_identity=None, keep_insertions=False, discardfile=None, mismatch=0):
+def main(reference=None, 
+    infile=None, 
+    score_matrix=None, 
+    outfile=None,
+    codon=False, 
+    positional=False, 
+    expected_identity=None, 
+    keep_insertions=True, 
+    discardfile=None, 
+    mismatch=0):
 
     if infile is None:
         infile = sys.stdin
@@ -61,12 +51,13 @@ def main(reference=None, infile=None, score_matrix=None, outfile=None, codon=Tru
         expected_identity = 0.
     '''
 
-    refrecords = [r for r in SeqIO.parse(reference, 'fasta')]
+    refrecord = SeqIO.read(reference, 'fasta')
     seqrecords = [r for r in SeqIO.parse(infile, 'fasta')]
 
-    validate(refrecords, 
+    # Need to have a sensible default score matrix XXX
+    validate(refrecord, 
         seqrecords, 
-        score_matrix=score_matrix, 
+        score_matrix=None, 
         mismatch=mismatch, 
         codon=codon, 
         revcomp=False, 
@@ -75,11 +66,6 @@ def main(reference=None, infile=None, score_matrix=None, outfile=None, codon=Tru
         quiet=False) 
 
     '''
-    if reference is None:
-        refseq = seqrecords.pop(0)
-    else:
-        refseq = _refseqs[args.reference].load()
-
     if score_matrix is None:
         sm = BLOSUM62.load()
     else:
@@ -152,9 +138,10 @@ if __name__ == '__main__':
         default=sys.stdout,
         help='save alignment to OUTPUT'
     )
+    # Set default to false, need to probably switch the parameter name... XXX
     parser.add_argument(
-        '-n', '--nocodon',
-        action='store_false',
+        '-c', '--codon',
+        action='store_true',
         help="don't use codon-aware alignment algorithm"
     )
     parser.add_argument(
@@ -194,7 +181,7 @@ if __name__ == '__main__':
             args.input,
             args.scorematrix,
             args.output,
-            args.nocodon,
+            args.codon,
             args.positional,
             args.identity,
             args.insertions,

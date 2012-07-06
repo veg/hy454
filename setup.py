@@ -27,7 +27,8 @@ setup(name='hy454',
       scripts=[
             'scripts/aligner',
             'scripts/coveragegrapher',
-            'scripts/seqlogo'
+            'scripts/seqlogo',
+            'scripts/validate'
       ],
       requires=[
             'Bio (>=1.58)',
