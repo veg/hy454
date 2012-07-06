@@ -69,7 +69,7 @@ def determine_refseq(seqrecords, mode):
 def align_to_refseq(refseq, seqrecords, scorematrix=None, codon=True, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
     if scorematrix is None:
         scorematrix = BLOSUM62.load()
-    aligned, _, _, identities = Aligner(codon=codon)(
+    _, aligned, _, _, identities = Aligner(codon=codon)(
         str(refseq.seq),
         [str(s.seq) for s in seqrecords],
         scorematrix,

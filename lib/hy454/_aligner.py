@@ -99,6 +99,6 @@ class Aligner(HyphyMap):
         for retstr in retstrs:
             seqscores.extend(json.loads(retstr))
 
-        newseqstrs, scores, overlaps, identities = zip(*seqscores)
+        newrefstrs, newseqstrs, scores, overlaps, identities = zip(*seqscores)
 
-        return list(newseqstrs), list(scores), list(overlaps), list(identities)
+        return list(newrefstrs), list(newseqstrs), list(scores), list(overlaps), list(identities)

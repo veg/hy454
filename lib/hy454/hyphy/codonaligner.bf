@@ -59,26 +59,26 @@ function CleanAlignment( _aln, _keepIns )
 {
     _ref = ( _aln[0] )[1];
     _seq = ( _aln[0] )[2];
-    _newRef = _ref ^ {{ "[-]",   ""  }};
     _altRef = _ref ^ {{ "[a-z]", "_" }};
+    _newRef = "";
     _newStr = "";
+    _newRef * 256;
+    _newStr * 256;
     if ( _keepIns ) {
         _keepIns = 1;
-        _newStr * Abs( _seq );
     } else {
         _keepIns = 0;
-        _newStr * Abs( _newRef );
     }
     _k = 0;
     _overlap_count = 0;
 
     // codon by codon...
-    _newRefLen = Abs( _newRef );
-    for ( _l = 0; _l < _newRefLen; _l += 3 ) {
+    _nucLen = Abs( _ref ^ {{ "[-]", "" }} );
+    for ( _l = 0; _l < _nucLen; _l += 3 ) {
         _ins = 0;
         _dels = 0;
         // count the number of insertions and deletions
-        _cdnAdv = Min( 3, _newRefLen - _l );
+        _cdnAdv = Min( 3, _nucLen - _l );
         for ( _k2 = 0; _k2 < _cdnAdv; _k2 += 1 ) {
             if (_altRef[ _k+_k2 ] == "-") {
                 _ins += 1;
@@ -94,10 +94,12 @@ function CleanAlignment( _aln, _keepIns )
         // if _ins == 0 and _dels == 0, then everything is normal,
         // add the original characters back in
         if ( ( _keepIns * _ins ) == 3 || ( _ins == 0 && _dels == 0 ) ) {
+            _newRef * _ref[ _k ][ _k+2 ];
             _newStr * _seq[ _k ][ _k+2 ];
-            _k += 3;
 
             _overlap_count += 3 * ( _seq[ _k ][ _k+2 ] != "---" );
+            
+            _k += 3;
         }
         // if neither of those two cases is true, then we need to go
         // position by position, removing insertions and
@@ -111,7 +113,9 @@ function CleanAlignment( _aln, _keepIns )
             for ( _l2 = 0; _k2 < _cdnAdv; _l2 += 1 ) {
                 // "_" means a deletion, add an "N" back in
                 if ( _altRef[ _k+_l2 ] == "_" ) {
+                    _newRef * _ref[ _k+_l2 ];
                     _newStr * "N";
+
                     _k2 += 1;
                 }
                 // if the character isn't an insertion
@@ -119,9 +123,12 @@ function CleanAlignment( _aln, _keepIns )
                 // insertions above, add the original back in
                 else {
                     if ( _altRef[ _k+_l2 ] != "-" ) {
+                        _newRef * _ref[ _k+_l2 ];
                         _newStr * _seq[ _k+_l2 ];
-                        _k2 += 1;
+
                         _overlap_count += ( _seq[ _k+_l2 ] != "-" );
+                        
+                        _k2 += 1;
                     }
                 }
             }
@@ -133,7 +140,7 @@ function CleanAlignment( _aln, _keepIns )
     // get rid of any gaps
     // _newStr2 = _newStr^{{"[-]", ""}};
     return { "ref": Uppercase( _newRef ),
-             "seq": Uppercase( _newStr[0][ _newRefLen ] ),
+             "seq": Uppercase( _newStr ),
              "overlap": _overlap_count / 3 };
 }
 
@@ -274,34 +281,6 @@ function computeExpectedPerBaseScore( _expectedIdentity ) {
 
 
 
-// _cdnaln_scorematrix =
-// {
-//  { 6, -3, -4, -4, -2, -2, -2, -1, -3, -3, -3, -2, -2, -4, -2,  0, -1, -5, -3, -1, -4, -2, -2, -7}
-//  {-3,  8, -2, -4, -6,  0, -2, -5, -2, -6, -4,  1, -3, -5, -4, -2, -3, -5, -3, -5, -3, -1, -2, -7}
-//  {-4, -2,  8,  0, -5, -1, -2, -2,  0, -6, -6, -1, -4, -5, -4,  0, -1, -7, -4, -5,  6, -2, -2, -7}
-//  {-4, -4,  0,  8, -6, -2,  0, -3, -3, -5, -6, -2, -6, -6, -3, -1, -3, -7, -6, -6,  6,  0, -3, -7}
-//  {-2, -6, -5, -6, 10, -5, -7, -5, -5, -3, -3, -6, -3, -5, -5, -2, -2, -4, -4, -2, -5, -6, -4, -7}
-//  {-2,  0, -1, -2, -5,  8,  1, -4,  0, -6, -4,  0, -1, -6, -3, -1, -2, -3, -3, -4, -1,  6, -2, -7}
-//  {-2, -2, -2,  0, -7,  1,  7, -4, -1, -6, -5,  0, -4, -6, -3, -1, -2, -5, -4, -4,  0,  6, -2, -7}
-//  {-1, -5, -2, -3, -5, -4, -4,  7, -4, -7, -6, -3, -5, -5, -4, -2, -4, -4, -5, -6, -2, -4, -4, -7}
-//  {-3, -2,  0, -3, -5,  0, -1, -4, 10, -6, -5, -2, -3, -3, -4, -2, -4, -5,  0, -6, -1, -1, -3, -7}
-//  {-3, -6, -6, -5, -3, -6, -6, -7, -6,  6,  0, -5,  0, -1, -5, -5, -2, -5, -3,  2, -5, -6, -2, -7}
-//  {-3, -4, -6, -6, -3, -4, -5, -6, -5,  0,  6, -5,  1, -1, -5, -5, -3, -3, -3,  0, -6, -5, -2, -7}
-//  {-2,  1, -1, -2, -6,  0,  0, -3, -2, -5, -5,  7, -3, -6, -2, -1, -2, -5, -3, -4, -2,  0, -2, -7}
-//  {-2, -3, -4, -6, -3, -1, -4, -5, -3,  0,  1, -3,  9, -1, -5, -3, -2, -3, -3,  0, -5, -2, -1, -7}
-//  {-4, -5, -5, -6, -5, -6, -6, -5, -3, -1, -1, -6, -1,  8, -6, -4, -4,  0,  1, -3, -6, -6, -3, -7}
-//  {-2, -4, -4, -3, -5, -3, -3, -4, -4, -5, -5, -2, -5, -6,  9, -2, -3, -6, -5, -4, -4, -3, -4, -7}
-//  { 0, -2,  0, -1, -2, -1, -1, -2, -2, -5, -5, -1, -3, -4, -2,  7,  0, -5, -3, -4, -1, -1, -2, -7}
-//  {-1, -3, -1, -3, -2, -2, -2, -4, -4, -2, -3, -2, -2, -4, -3,  0,  7, -4, -3, -1, -2, -2, -2, -7}
-//  {-5, -5, -7, -7, -4, -3, -5, -4, -5, -5, -3, -5, -3,  0, -6, -5, -4, 12,  0, -6, -7, -4, -4, -7}
-//  {-3, -3, -4, -6, -4, -3, -4, -5,  0, -3, -3, -3, -3,  1, -5, -3, -3,  0,  9, -3, -5, -3, -2, -7}
-//  {-1, -5, -5, -6, -2, -4, -4, -6, -6,  2,  0, -4,  0, -3, -4, -4, -1, -6, -3,  6, -6, -4, -2, -7}
-//  {-4, -3,  6,  6, -5, -1,  0, -2, -1, -5, -6, -2, -5, -6, -4, -1, -2, -7, -5, -6,  7, -1, -3, -7}
-//  {-2, -1, -2,  0, -6,  6,  6, -4, -1, -6, -5,  0, -2, -6, -3, -1, -2, -4, -3, -4, -1,  7, -2, -7}
-//  {-2, -2, -2, -3, -4, -2, -2, -4, -3, -2, -2, -2, -1, -3, -4, -2, -2, -4, -2, -2, -3, -2, -2, -7}
-//  {-7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7, -7,  1}
-// };
-
 _cdnaln_base_freqs = {
 {0.060490222}
 {0.020075899}
@@ -368,8 +347,6 @@ if ( _cdnaln_pad > 0 && _cdnaln_pad < 3 ) {
 }
 _cdnaln_refseq * 0;
 _cdnaln_scoremod = _cdnaln_truelen / ( _cdnaln_truelen + _cdnaln_pad );
-
-// _cdnaln_letters = "ARNDCQEGHILKMFPSTWYV";
 
 _cdnaln_cdnScoreMatrix = pSM2cSM(_cdnaln_scorematrix, _cdnaln_letters);
 
@@ -438,6 +415,7 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
 
     // trim the sequence back to the true length (unpadded) if we're not keeping insertions
     // and modify the alignment score to account for this
+    _cdnaln_cleanref = _cdnaln_cleanseqs[ "ref" ];
     _cdnaln_cleanseq = _cdnaln_cleanseqs[ "seq" ];
     if ( ! _cdnaln_keepins )
     {
@@ -450,7 +428,7 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
         _cdnaln_outstr * ",";
     }
     _cdnaln_identity_score = _cdnaln_score - _cdnaln_expected_identity_score;
-    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanseq + "\"," + _cdnaln_score + "," + _cdnaln_cleanseqs["overlap"] + "," + _cdnaln_identity_score + "]" );
+    _cdnaln_outstr * ( "[\"" + _cdnaln_cleanref + "\",\"" + _cdnaln_cleanseq + "\"," + _cdnaln_score + "," + _cdnaln_cleanseqs["overlap"] + "," + _cdnaln_identity_score + "]" );
 }
 
 _cdnaln_outstr * "]";
