@@ -2,21 +2,14 @@
 from __future__ import division, print_function
 
 from copy import deepcopy
-from math import ceil, log
-from multiprocessing import cpu_count, current_process
-from operator import itemgetter
 from re import compile as re_compile, I as re_I
-from sys import exc_info, exit as sys_exit, float_info
 
-from Bio import SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import generic_nucleotide
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from BioExt import _GAP, BLOSUM62, enumerate_by_codon
-
-from fakemp import farmout, farmworker
 
 from ._aligner import Aligner
 
@@ -66,13 +59,13 @@ def determine_refseq(seqrecords, mode):
     return refseq, seqrecords
 
 
-def align_to_refseq(refseq, seqrecords, scorematrix=None, codon=True, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
-    if scorematrix is None:
-        scorematrix = BLOSUM62.load()
+def align_to_refseq(refseq, seqrecords, score_matrix=None, codon=True, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
+    if score_matrix is None:
+        score_matrix = BLOSUM62.load()
     _, aligned, _, _, identities = Aligner(codon=codon)(
         str(refseq.seq),
         [str(s.seq) for s in seqrecords],
-        scorematrix,
+        score_matrix,
         revcomp,
         expected_identity,
         keep_insertions,
@@ -108,7 +101,6 @@ def align_to_refseq(refseq, seqrecords, scorematrix=None, codon=True, revcomp=Tr
 
 def from_positional(datastruct):
     records = []
-    gapcdn = _GAP * 3
     maxlen = 0
     for poscdns in datastruct.values():
         lastcdn, _ = poscdns[-1]

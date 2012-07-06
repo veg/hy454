@@ -5,7 +5,6 @@ from __future__ import division, print_function
 import argparse, sys
 
 from json import dump as json_dump
-from os.path import exists
 
 from Bio import SeqIO, AlignIO
 
@@ -14,7 +13,7 @@ from BioExt import hxb2, nl4_3, BLOSUM62, HIV_BETWEEN_F, PAM200, PAM250
 from hy454 import align_to_refseq, to_positional
 
 
-_scorematrices = {
+_score_matrices = {
     'BLOSUM62': BLOSUM62,
     'HIV_BETWEEN_F': HIV_BETWEEN_F,
     'PAM200': PAM200,
@@ -44,7 +43,7 @@ def positional_write(msa, fh):
     fh.write('\n')
 
 
-def main(infile=None, reference=None, scorematrix=None, outfile=None, codon=True, positional=False, expected_identity=None, keep_insertions=False, discardfile=None):
+def main(infile=None, reference=None, score_matrix=None, outfile=None, codon=True, positional=False, expected_identity=None, keep_insertions=False, discardfile=None):
 
     if infile is None:
         infile = sys.stdin
@@ -67,15 +66,15 @@ def main(infile=None, reference=None, scorematrix=None, outfile=None, codon=True
     else:
         refseq = _refseqs[args.reference].load()
 
-    if scorematrix is None:
+    if score_matrix is None:
         sm = BLOSUM62.load()
     else:
-        sm = _scorematrices[scorematrix].load()
+        sm = _score_matrices[score_matrix].load()
 
     msa, discarded = align_to_refseq(
         refseq,
         seqrecords,
-        scorematrix=sm,
+        score_matrix=sm,
         codon=codon,
         expected_identity=expected_identity,
         keep_insertions=keep_insertions
@@ -121,7 +120,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-s', '--scorematrix',
-        choices=sorted(_scorematrices.keys()),
+        choices=sorted(_score_matrices.keys()),
         default='BLOSUM62',
         help='use a specific scoring matrix [default=BLOSUM62]'
     )

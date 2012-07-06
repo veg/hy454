@@ -3,11 +3,7 @@ from __future__ import division, print_function
 
 import json
 
-from math import ceil, log
 from os.path import abspath, exists, join, split
-from sys import stderr
-
-from Bio.Alphabet import generic_nucleotide
 
 from BioExt import (BLOSUM62, DNAExpIdScoreMatrix,
     DNAScoreMatrix, ProteinScoreMatrix)
@@ -41,29 +37,29 @@ class Aligner(HyphyMap):
     def codon(self):
         return self.__codon
 
-    def __call__(self, refseq, seqs, scorematrix=None, revcomp=False, expected_identity=0., keep_insertions=False, quiet=True):
-        return Aligner.align(self, refseq, seqs, scorematrix, revcomp, expected_identity, keep_insertions, quiet)
+    def __call__(self, refseq, seqs, score_matrix=None, revcomp=False, expected_identity=0., keep_insertions=False, quiet=True):
+        return Aligner.align(self, refseq, seqs, score_matrix, revcomp, expected_identity, keep_insertions, quiet)
 
-    def align(self, refseq, seqs, scorematrix=None, revcomp=False, expected_identity=0., keep_insertions=False, quiet=True):
+    def align(self, refseq, seqs, score_matrix=None, revcomp=False, expected_identity=0., keep_insertions=False, quiet=True):
         # if we have no sequences, abort early to prevent later errors
         if not len(seqs):
             return [], []
 
-        if scorematrix is None:
+        if score_matrix is None:
             if self.codon:
-                scorematrix = BLOSUM62.load()
+                score_matrix = BLOSUM62.load()
             else:
-                scorematrix = DNAExpIdScoreMatrix(
+                score_matrix = DNAExpIdScoreMatrix(
                     0.8 if expected_identity == 0. else expected_identity,
                     { 'A': 0.25, 'C': 0.25, 'G': 0.25, 'T': 0.25 }
                 )
 
-        if self.codon and not isinstance(scorematrix, ProteinScoreMatrix):
-            raise ValueError('scorematrix incompatible with codon alignment')
-        elif not self.codon and not isinstance(scorematrix, DNAScoreMatrix):
-            raise ValueError('scorematrix incompatible with dna alignment')
+        if self.codon and not isinstance(score_matrix, ProteinScoreMatrix):
+            raise ValueError('score_matrix incompatible with codon alignment')
+        elif not self.codon and not isinstance(score_matrix, DNAScoreMatrix):
+            raise ValueError('score_matrix incompatible with dna alignment')
 
-        smdef = { ('_cdnaln_letters', '_cdnaln_scorematrix'): scorematrix }
+        smdef = { ('_cdnaln_letters', '_cdnaln_scorematrix'): score_matrix }
 
         # uppercase the refseq to deal with bugs in HyPhy's aligner
         refseq = refseq.upper()

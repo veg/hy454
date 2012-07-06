@@ -10,7 +10,7 @@ from ._aligner import Aligner
 __all__ = ['validate']
 
 
-def validate(refseq, seqs, scorematrix=None, mismatch=0, codon=True, revcomp=False, expected_identity=0., keep_insertions=True, quiet=False):
+def validate(refseq, seqs, score_matrix=None, mismatch=0, codon=True, revcomp=False, expected_identity=0., keep_insertions=True, quiet=False):
     msg = "cannot validate sequences that are not SeqRecord, Seq, or str objects"
 
     if isinstance(refseq, SeqRecord):
@@ -33,14 +33,14 @@ def validate(refseq, seqs, scorematrix=None, mismatch=0, codon=True, revcomp=Fal
         else:
             raise ValueError(msg)
 
-    if scorematrix is None:
-        scorematrix = BLOSUM62.load()
+    if score_matrix is None:
+        score_matrix = BLOSUM62.load()
 
     aligner = Aligner(codon=codon)
     refs, queries, _, _, identities = aligner(
         r,
         qs,
-        scorematrix,
+        score_matrix,
         revcomp,
         expected_identity,
         keep_insertions,
@@ -55,6 +55,6 @@ def validate(refseq, seqs, scorematrix=None, mismatch=0, codon=True, revcomp=Fal
         if expected_identity > 0. and i < expected_identity:
             scores.append(None)
         else:
-            scores.append(scorematrix(translate(r), translate(q), mismatch))
+            scores.append(score_matrix(translate(r), translate(q), mismatch))
 
     return lengths, scores
