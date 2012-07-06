@@ -31,7 +31,7 @@ setup(name='hy454',
       ],
       requires=[
             'Bio (>=1.58)',
-            'BioExt (>=0.9.5)',
+            'BioExt (>=0.9.6)',
             'fakemp (>=0.9.1)',
             'freetype (>=0.3.3)',
             'hppy (>=0.9.3)',

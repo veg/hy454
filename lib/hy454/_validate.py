@@ -2,7 +2,7 @@
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from BioExt import BLOSUM62
+from BioExt import BLOSUM62, translate
 
 from ._aligner import Aligner
 
@@ -55,6 +55,6 @@ def validate(refseq, seqs, scorematrix=None, mismatch=0, codon=True, revcomp=Fal
         if expected_identity > 0. and i < expected_identity:
             scores.append(None)
         else:
-            scores.append(scorematrix(r, q, mismatch))
+            scores.append(scorematrix(translate(r), translate(q), mismatch))
 
     return lengths, scores

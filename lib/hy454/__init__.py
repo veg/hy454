@@ -12,6 +12,7 @@ from ._preprocessing import *
 from ._rate_class_neb import *
 from ._region_extract import *
 from ._reporter import *
+from ._validate import *
 from ._variants import *
 
 
@@ -27,6 +28,7 @@ __all__ += _preprocessing.__all__
 __all__ += _rate_class_neb.__all__
 __all__ += _region_extract.__all__
 __all__ += _reporter.__all__
+__all__ += _validate.__all__
 __all__ += _variants.__all__
 
 
