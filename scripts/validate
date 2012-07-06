@@ -10,6 +10,57 @@ from Bio import SeqIO, AlignIO
 
 from BioExt import hxb2, nl4_3, BLOSUM62, HIV_BETWEEN_F, PAM200, PAM250
 
-from hy454 import align_to_refseq, to_positional
+from hy454 import align_to_refseq, to_positional, validate
 
+# Take sequences from stdin
+def main(reference=None, reference=None, outfile=None):
+    
+    if infile is None:
+        infile = sys.stdin
 
+    if outfile is None:
+        outfile = sys.stdout
+    
+    seqrecords = [r for r in SeqIO.parse(infile, 'fasta')]
+
+    if reference is None:
+        refseq = seqrecords.pop(0)
+    else
+        refseq = _reseqs[ars.reference].load()
+
+    return 0
+
+if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser(
+        description='Score various aligners'
+    )
+
+    parser.add_argument(
+        'input',
+        metavar='FASTAFILE',
+        type=argparse.FileType('r'),
+        help='unaligned FASTA file'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        type=argparse.FileType('w'),
+        default=sys.stdout,
+        help='save alignment to OUTPUT'
+    )
+
+    args = None
+    retcode = -1
+    try:
+        args = parser.parse_args()
+        retcode = main(
+            args.input,
+            ags.output
+        )
+    finally:
+        if args is not None:
+            if not args.input in (None, sys.stdin):
+                args.input.close()
+            if not args.output in (None, sys.stdout):
+                args.output.close()
+    sys.exit(retcode)
