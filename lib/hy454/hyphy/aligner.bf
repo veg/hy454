@@ -221,6 +221,7 @@ for ( _aln_idx = 0; _aln_idx < _aln_numseqs; _aln_idx += 1 )
 
     // trim the sequence back to the true length (unpadded) if we're not keeping insertions
     // and modify the alignment score to account for this
+    _aln_cleanref = _aln_cleanseqs[ "ref" ];
     _aln_cleanseq = _aln_cleanseqs[ "seq" ];
 
     if (_aln_idx > 0)
@@ -228,7 +229,7 @@ for ( _aln_idx = 0; _aln_idx < _aln_numseqs; _aln_idx += 1 )
         _aln_outstr * ",";
     }
     _aln_identity_score = _aln_score - _aln_expected_identity_score;
-    _aln_outstr * ( "[\"" + _aln_cleanseq + "\"," + _aln_score + "," + _aln_cleanseqs["overlap"] + "," + _aln_identity_score + "]" );
+    _aln_outstr * ( "[\"" + _aln_cleanref + "\",\"" + _aln_cleanseq + "\"," + _aln_score + "," + _aln_cleanseqs["overlap"] + "," + _aln_identity_score + "]" );
 }
 
 _aln_outstr * "]";

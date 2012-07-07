@@ -30,6 +30,7 @@ class Aligner(HyphyMap):
             raise ValueError("Invalid batchfile `%s', it doesn't exist!" % batchfile)
 
         self.__codon = codon
+        self.__smvar = 'cdnaln' if codon else 'aln'
 
         super(Aligner, self).__init__(batchfile, retvar)
 
@@ -59,7 +60,7 @@ class Aligner(HyphyMap):
         elif not self.codon and not isinstance(score_matrix, DNAScoreMatrix):
             raise ValueError('score_matrix incompatible with dna alignment')
 
-        smdef = { ('_cdnaln_letters', '_cdnaln_scorematrix'): score_matrix }
+        smdef = { ('_%s_letters' % self.__smvar, '_%s_scorematrix' % self.__smvar): score_matrix }
 
         # uppercase the refseq to deal with bugs in HyPhy's aligner
         refseq = refseq.upper()
