@@ -4,20 +4,14 @@ from __future__ import division, print_function
 
 import argparse, sys
 
-from Bio import SeqIO, SeqRecord
+from Bio import SeqIO
+from Bio.Alphabet import IUPAC
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
 
 from BioExt import untranslate
 
-from subprocess import Popen, PIPE, STDOUT
-
-# tnhp = translated/untranslated no homopolymer errors
-
-
-# This exists because I need to go through BioExt and see what it
-# needs/returns XXX
-def trans_untrans(refrecord):
-    return refrecord
-    #return SeqRecord(untranslate(refrecord.seq.translate()))
+from subprocess import Popen, PIPE
 
 def main(
     infile=None,
@@ -34,17 +28,12 @@ def main(
     if outfile is None:
         outfile = sys.stdout
 
-    commandlist = []
-    parameterlist = []
-
     refrecord = SeqIO.read(infile, 'fasta')
 
     if translate:
-        refrecord = trans_untrans(refrecord)
+        refrecord = SeqRecord(Seq(untranslate(refrecord.seq.translate()), IUPAC.protein))
 
     # shell=True is bad news, fix it XXX
-    readnumber = 10
-
     # Run clonesim
     p = Popen(["clonesim -c %d" % (readnumber)], stdin=PIPE, stdout=PIPE, shell=True)
     output = p.communicate(refrecord.format("fasta").encode())[0]
@@ -62,9 +51,7 @@ def main(
         p = Popen(["flower reads.sff -f"], stdout=PIPE, shell=True)
         output = p.communicate()[0]
 
-
     print(output.decode(), file=outfile)
-
 
     return 0
 
@@ -89,7 +76,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-T', '--translate',
-        action='store_false',
+        action='store_true',
         help='translate+untranslate the ref sequence'
     )
     parser.add_argument(
@@ -106,7 +93,7 @@ if __name__ == '__main__':
         type=int,
         default=1000,
         nargs=1,
-        help='number of reads generated from this gene'
+        help='target number of reads generated from this gene'
     )
     parser.add_argument(
         '-H', '--hperrors',
