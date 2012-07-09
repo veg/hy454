@@ -38,7 +38,7 @@ def main(
     p = Popen(["clonesim -c %d" % (readnumber)], stdin=PIPE, stdout=PIPE, shell=True)
     output = p.communicate(refrecord.format("fasta").encode())[0]
 
-    # Run kitsim 
+    # Run kitsim
     p = Popen(["kitsim "], stdin=PIPE, stdout=PIPE, shell=True)
     output = p.communicate(output)[0]
 
