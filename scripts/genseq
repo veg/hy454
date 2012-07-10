@@ -5,19 +5,17 @@ from __future__ import division, print_function
 import argparse, sys
 
 from Bio import SeqIO
-from Bio.Alphabet import IUPAC
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 
-from BioExt import untranslate
+from BioExt import UntranslationTable, untranslate
 
 from subprocess import Popen, PIPE
 
 def main(
     infile=None,
     outfile=None,
-    translate=False,
-    genelength=1000,
+    permute=False,
     readnumber=1000,
     hperrors=False
     ):
@@ -28,30 +26,30 @@ def main(
     if outfile is None:
         outfile = sys.stdout
 
-    refrecord = SeqIO.read(infile, 'fasta')
+    refseq = SeqIO.read(infile, 'fasta')
 
-    if translate:
-        refrecord = SeqRecord(Seq(untranslate(refrecord.seq.translate()), IUPAC.protein))
+    if permute:
+        tbl = UntranslationTable(refseq)
+        refseq = SeqRecord(Seq(untranslate(refseq.seq.translate(), table=tbl)))
 
     # Run clonesim
-    #p = Popen(["clonesim -c %d" % (readnumber)], stdin=PIPE, stdout=PIPE, shell=True)
-    p = Popen(["clonesim", "-c", str(readnumber)], stdin=PIPE, stdout=PIPE)
-    output = p.communicate(refrecord.format("fasta").encode())[0]
+    p = Popen(['clonesim', '-c', str(readnumber)], stdin=PIPE, stdout=PIPE)
+    out, _ = p.communicate(refseq.format('fasta').encode())
 
     # Run kitsim
-    p = Popen(["kitsim"], stdin=PIPE, stdout=PIPE)
-    output = p.communicate(output)[0]
+    p = Popen(['kitsim'], stdin=PIPE, stdout=PIPE)
+    out, _ = p.communicate(out)
 
     if hperrors:
         # Run flowsim
-        p = Popen(["flowsim", "-o", "reads.sff"], stdin=PIPE, stdout=PIPE)
-        output = p.communicate(output)[0]
+        p = Popen(['flowsim', '-o', 'reads.sff'], stdin=PIPE, stdout=PIPE)
+        out, _ = p.communicate(out)
 
         # Run flower
-        p = Popen(["flower", "reads.sff", "-f"], stdout=PIPE)
-        output = p.communicate()[0]
+        p = Popen(['flower', 'reads.sff', '-f'], stdout=PIPE)
+        out, _ = p.communicate()
 
-    print(output.decode(), file=outfile)
+    print(out.decode(), file=outfile)
 
     return 0
 
@@ -75,17 +73,9 @@ if __name__ == '__main__':
         help='save alignment to OUTPUT'
     )
     parser.add_argument(
-        '-T', '--translate',
+        '-P', '--permute',
         action='store_true',
-        help='translate+untranslate the ref sequence'
-    )
-    parser.add_argument(
-        '-L', '--genelength',
-        metavar='GENELENGTH',
-        type=int,
-        default=1000,
-        nargs=1,
-        help='target length of the simulated source gene'
+        help='permute the reference by translate+untranslate the sequence'
     )
     parser.add_argument(
         '-N', '--readnumber',
@@ -108,8 +98,7 @@ if __name__ == '__main__':
         retcode = main(
             args.input,
             args.output,
-            args.translate,
-            args.genelength,
+            args.permute,
             args.readnumber,
             args.hperrors
         )

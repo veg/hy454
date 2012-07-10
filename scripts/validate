@@ -6,22 +6,17 @@ import argparse, sys
 
 from Bio import SeqIO
 
-from BioExt import (BLOSUM62, DNA80, HIV_BETWEEN_F,
-    PAM200, PAM250, DNAExpIdScoreMatrix)
+from BioExt import (BLOSUM62, DNA65, DNA70, DNA80,
+    DNA88, DNA95, HIV_BETWEEN_F, PAM200, PAM250)
 
 from hy454 import validate
 
-_dna_freqs = {
-    'A': 0.25,
-    'C': 0.25,
-    'G': 0.25,
-    'T': 0.25
-}
-
 _dna_score_matrices = {
-    'DNA40': DNAExpIdScoreMatrix(0.4, _dna_freqs),
-    'DNA60': DNAExpIdScoreMatrix(0.6, _dna_freqs),
-    'DNA80': DNA80
+    'DNA65': DNA65,
+    'DNA70': DNA70,
+    'DNA80': DNA80,
+    'DNA88': DNA88,
+    'DNA95': DNA95
 }
 
 _protein_score_matrices = {
@@ -61,9 +56,9 @@ def main(
         psm = _protein_score_matrices[protein_score_matrix].load()
 
     if dna_score_matrix is None:
-        dsm = DNA80
+        dsm = DNA65.load()
     else:
-        dsm = _dna_score_matrices[dna_score_matrix]
+        dsm = _dna_score_matrices[dna_score_matrix].load()
 
     lengths, dna_scores, protein_scores = validate(
         refrecord,
@@ -113,7 +108,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-d', '--dnascorematrix',
         choices=sorted(_dna_score_matrices.keys()),
-        help='use a specific DNA scoring matrix [default=DNA80]'
+        help='use a specific DNA scoring matrix [default=DNA65]'
     )
     parser.add_argument(
         '-p', '--proteinscorematrix',

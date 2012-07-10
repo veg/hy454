@@ -8,14 +8,23 @@ from json import dump as json_dump
 
 from Bio import SeqIO, AlignIO
 
-from BioExt import hxb2, nl4_3, BLOSUM62, DNA80, HIV_BETWEEN_F, PAM200, PAM250
+from BioExt import (hxb2, nl4_3, BLOSUM62,
+    DNA65, DNA70, DNA80, DNA88, DNA95,
+    HIV_BETWEEN_F, PAM200, PAM250)
 
 from hy454 import align_to_refseq, to_positional
 
 
-_score_matrices = {
-    'BLOSUM62': BLOSUM62,
+_dna_score_matrices = {
+    'DNA65': DNA65,
+    'DNA70': DNA70,
     'DNA80': DNA80,
+    'DNA88': DNA88,
+    'DNA95': DNA95,
+}
+
+_protein_score_matrices = {
+    'BLOSUM62': BLOSUM62,
     'HIV_BETWEEN_F': HIV_BETWEEN_F,
     'PAM200': PAM200,
     'PAM250': PAM250
@@ -44,7 +53,17 @@ def positional_write(msa, fh):
     fh.write('\n')
 
 
-def main(infile=None, reference=None, score_matrix=None, outfile=None, codon=True, positional=False, expected_identity=None, keep_insertions=False, discardfile=None):
+def main(
+    infile=None,
+    reference=None,
+    dna_score_matrix=None,
+    protein_score_matrix=None,
+    outfile=None,
+    codon=True,
+    positional=False,
+    expected_identity=None,
+    keep_insertions=False,
+    discardfile=None):
 
     if infile is None:
         infile = sys.stdin
@@ -67,13 +86,16 @@ def main(infile=None, reference=None, score_matrix=None, outfile=None, codon=Tru
     else:
         refseq = _refseqs[args.reference].load()
 
-    if score_matrix is None:
-        sm = BLOSUM62.load()
+    if not codon:
+        if dna_score_matrix is None:
+            sm = DNA65.load()
+        else:
+            sm = _dna_score_matrices[dna_score_matrix].load()
     else:
-        sm = _score_matrices[score_matrix]
-
-    if hasattr(sm, 'load'):
-        sm = sm.load()
+        if protein_score_matrix is None:
+            sm = BLOSUM62.load()
+        else:
+            sm = _protein_score_matrices[protein_score_matrix].load()
 
     msa, discarded = align_to_refseq(
         refseq,
@@ -108,8 +130,8 @@ if __name__ == '__main__':
         description='align sequences to a reference using a codon alignment algorithm, returning FASTA by default'
     )
 
-    # --positional requires MSA form, which --insertions precludes
-    group = parser.add_mutually_exclusive_group()
+    # --compact requires MSA form, which --insertions precludes
+    group0 = parser.add_mutually_exclusive_group()
 
     parser.add_argument(
         'input',
@@ -123,16 +145,22 @@ if __name__ == '__main__':
         help='use a provided default reference sequence'
     )
     parser.add_argument(
-        '-s', '--scorematrix',
-        choices=sorted(_score_matrices.keys()),
+        '-d', '--dnascorematrix',
+        choices=sorted(_dna_score_matrices.keys()),
+        default='DNA65',
+        help='use a specific scoring matrix [default=DNA65]'
+    )
+    parser.add_argument(
+        '-p', '--proteinscorematrix',
+        choices=sorted(_protein_score_matrices.keys()),
         default='BLOSUM62',
         help='use a specific scoring matrix [default=BLOSUM62]'
     )
     # add this to the mutually exclusive group
-    group.add_argument(
-        '-p', '--positional',
+    group0.add_argument(
+        '--positional',
         action='store_true',
-        help='return JSON-formatted reference-relative codon positional format'
+        help='return JSON-formatted reference-relative codon compact format'
     )
     parser.add_argument(
         '-o', '--output',
@@ -146,20 +174,20 @@ if __name__ == '__main__':
         help="don't use codon-aware alignment algorithm"
     )
     parser.add_argument(
-        '-i', '--identity',
+        '-e', '--expectedidentity',
         metavar='PROBABILITY',
         type=probability,
         default=0.,
         help='discard sequences that are insufficiently identical to the reference'
     )
     parser.add_argument(
-        '-d', '--discard',
+        '-D', '--discard',
         metavar='DISCARDFILE',
         type=argparse.FileType('w'),
         help='discarded sequences are sent to DISCARDFILE'
     )
     # add to the mutually exclusive group
-    group.add_argument(
+    group0.add_argument(
         '-I', '--insertions',
         action='store_true',
         help='keep insertions (output is not an MSA)'
@@ -172,11 +200,12 @@ if __name__ == '__main__':
         retcode = main(
             args.input,
             args.reference,
-            args.scorematrix,
+            args.dnascorematrix,
+            args.proteinscorematrix,
             args.output,
             args.nocodon,
             args.positional,
-            args.identity,
+            args.expectedidentity,
             args.insertions,
             args.discard
         )
