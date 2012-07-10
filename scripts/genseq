@@ -33,22 +33,22 @@ def main(
     if translate:
         refrecord = SeqRecord(Seq(untranslate(refrecord.seq.translate()), IUPAC.protein))
 
-    # shell=True is bad news, fix it XXX
     # Run clonesim
-    p = Popen(["clonesim -c %d" % (readnumber)], stdin=PIPE, stdout=PIPE, shell=True)
+    #p = Popen(["clonesim -c %d" % (readnumber)], stdin=PIPE, stdout=PIPE, shell=True)
+    p = Popen(["clonesim", "-c", str(readnumber)], stdin=PIPE, stdout=PIPE)
     output = p.communicate(refrecord.format("fasta").encode())[0]
 
     # Run kitsim
-    p = Popen(["kitsim "], stdin=PIPE, stdout=PIPE, shell=True)
+    p = Popen(["kitsim"], stdin=PIPE, stdout=PIPE)
     output = p.communicate(output)[0]
 
     if hperrors:
         # Run flowsim
-        p = Popen(["flowsim -o reads.sff"], stdin=PIPE, stdout=PIPE, shell=True)
+        p = Popen(["flowsim", "-o", "reads.sff"], stdin=PIPE, stdout=PIPE)
         output = p.communicate(output)[0]
 
         # Run flower
-        p = Popen(["flower reads.sff -f"], stdout=PIPE, shell=True)
+        p = Popen(["flower", "reads.sff", "-f"], stdout=PIPE)
         output = p.communicate()[0]
 
     print(output.decode(), file=outfile)
