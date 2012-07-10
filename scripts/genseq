@@ -4,13 +4,17 @@ from __future__ import division, print_function
 
 import argparse, sys
 
+from os import close
+from subprocess import Popen, PIPE
+from tempfile import mkstemp
+
+from six import StringIO
+
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 
 from BioExt import UntranslationTable, untranslate
-
-from subprocess import Popen, PIPE
 
 def main(
     infile=None,
@@ -33,23 +37,30 @@ def main(
         refseq = SeqRecord(Seq(untranslate(refseq.seq.translate(), table=tbl)))
 
     # Run clonesim
-    p = Popen(['clonesim', '-c', str(readnumber)], stdin=PIPE, stdout=PIPE)
+    p = Popen(['clonesim', '-c', '%d' % readnumber], stderr=PIPE, stdin=PIPE, stdout=PIPE)
     out, _ = p.communicate(refseq.format('fasta').encode())
 
     # Run kitsim
-    p = Popen(['kitsim'], stdin=PIPE, stdout=PIPE)
+    p = Popen(['kitsim'], stderr=PIPE, stdin=PIPE, stdout=PIPE)
     out, _ = p.communicate(out)
 
     if hperrors:
         # Run flowsim
-        p = Popen(['flowsim', '-o', 'reads.sff'], stdin=PIPE, stdout=PIPE)
-        out, _ = p.communicate(out)
+        fd, tmpfile = mkstemp(); close(fd)
+        p = Popen(['flowsim', '-o', tmpfile], stderr=PIPE, stdin=PIPE, stdout=PIPE)
+        _, _ = p.communicate(out)
 
-        # Run flower
-        p = Popen(['flower', 'reads.sff', '-f'], stdout=PIPE)
-        out, _ = p.communicate()
+        obuf = StringIO()
 
-    print(out.decode(), file=outfile)
+        with open(tmpfile, 'rb') as fh:
+            SeqIO.convert(fh, 'sff', obuf, 'fasta')
+
+        out = obuf.getvalue()
+        obuf.close()
+    else:
+        out = out.decode()
+
+    print(out, file=outfile)
 
     return 0
 
@@ -82,7 +93,6 @@ if __name__ == '__main__':
         metavar='READNUMBER',
         type=int,
         default=1000,
-        nargs=1,
         help='target number of reads generated from this gene'
     )
     parser.add_argument(
