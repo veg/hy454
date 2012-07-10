@@ -1,0 +1,122 @@
+#!/usr/bin/env python3.2
+
+from __future__ import division, print_function
+
+import argparse, sys
+
+from Bio import SeqIO
+from Bio.Alphabet import IUPAC
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
+
+from BioExt import untranslate
+
+from subprocess import Popen, PIPE
+
+def main(
+    infile=None,
+    outfile=None,
+    translate=False,
+    genelength=1000,
+    readnumber=1000,
+    hperrors=False
+    ):
+
+    if infile is None:
+        infile = sys.stdin
+
+    if outfile is None:
+        outfile = sys.stdout
+
+    refrecord = SeqIO.read(infile, 'fasta')
+
+    if translate:
+        refrecord = SeqRecord(Seq(untranslate(refrecord.seq.translate()), IUPAC.protein))
+
+    # Run clonesim
+    #p = Popen(["clonesim -c %d" % (readnumber)], stdin=PIPE, stdout=PIPE, shell=True)
+    p = Popen(["clonesim", "-c", str(readnumber)], stdin=PIPE, stdout=PIPE)
+    output = p.communicate(refrecord.format("fasta").encode())[0]
+
+    # Run kitsim
+    p = Popen(["kitsim"], stdin=PIPE, stdout=PIPE)
+    output = p.communicate(output)[0]
+
+    if hperrors:
+        # Run flowsim
+        p = Popen(["flowsim", "-o", "reads.sff"], stdin=PIPE, stdout=PIPE)
+        output = p.communicate(output)[0]
+
+        # Run flower
+        p = Popen(["flower", "reads.sff", "-f"], stdout=PIPE)
+        output = p.communicate()[0]
+
+    print(output.decode(), file=outfile)
+
+    return 0
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(
+        description='align sequences to a reference using a codon alignment algorithm, returning FASTA by default'
+    )
+
+    parser.add_argument(
+        'input',
+        metavar='FASTAFILE',
+        type=argparse.FileType('r'),
+        help='unaligned FASTA file'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        type=argparse.FileType('w'),
+        default=sys.stdout,
+        help='save alignment to OUTPUT'
+    )
+    parser.add_argument(
+        '-T', '--translate',
+        action='store_true',
+        help='translate+untranslate the ref sequence'
+    )
+    parser.add_argument(
+        '-L', '--genelength',
+        metavar='GENELENGTH',
+        type=int,
+        default=1000,
+        nargs=1,
+        help='target length of the simulated source gene'
+    )
+    parser.add_argument(
+        '-N', '--readnumber',
+        metavar='READNUMBER',
+        type=int,
+        default=1000,
+        nargs=1,
+        help='target number of reads generated from this gene'
+    )
+    parser.add_argument(
+        '-H', '--hperrors',
+        action='store_true',
+        help='introduce homopolymer length miscalls'
+    )
+
+    args = None
+    retcode = -1
+    try:
+        args = parser.parse_args()
+        retcode = main(
+            args.input,
+            args.output,
+            args.translate,
+            args.genelength,
+            args.readnumber,
+            args.hperrors
+        )
+    finally:
+        if args is not None:
+            if not args.input in (None, sys.stdin):
+                args.input.close()
+            if not args.output in (None, sys.stdout):
+                args.output.close()
+    sys.exit(retcode)
