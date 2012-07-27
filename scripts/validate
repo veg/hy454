@@ -68,7 +68,7 @@ def main(
         dna_mismatch=dna_mismatch,
         protein_mismatch=protein_mismatch,
         codon=codon,
-        revcomp=False,
+        revcomp=True,
         expected_identity=expected_identity,
         keep_insertions=keep_insertions,
         quiet=False)

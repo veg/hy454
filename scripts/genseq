@@ -5,6 +5,7 @@ from __future__ import division, print_function
 import argparse, sys
 
 from os import close
+from re import compile as re_compile
 from subprocess import Popen, PIPE
 from tempfile import mkstemp
 
@@ -21,8 +22,8 @@ def main(
     outfile=None,
     permute=False,
     readnumber=1000,
-    hperrors=False
-    ):
+    tags=False,
+    errors=False):
 
     if infile is None:
         infile = sys.stdin
@@ -44,7 +45,7 @@ def main(
     p = Popen(['kitsim'], stderr=PIPE, stdin=PIPE, stdout=PIPE)
     out, _ = p.communicate(out)
 
-    if hperrors:
+    if errors:
         # Run flowsim
         fd, tmpfile = mkstemp(); close(fd)
         p = Popen(['flowsim', '-o', tmpfile], stderr=PIPE, stdin=PIPE, stdout=PIPE)
@@ -54,13 +55,27 @@ def main(
 
         with open(tmpfile, 'rb') as fh:
             SeqIO.convert(fh, 'sff', obuf, 'fasta')
-
-        out = obuf.getvalue()
-        obuf.close()
     else:
-        out = out.decode()
+        obuf = StringIO(out.decode())
 
-    print(out, file=outfile)
+    obuf.seek(0)
+
+    if not tags:
+        headtag = re_compile(r'^[a-z]+')
+        tailtag = re_compile(r'[a-z]+$')
+        for sr in SeqIO.parse(obuf, 'fasta'):
+            seq = str(sr.seq)
+            m = headtag.search(seq)
+            if m:
+                sr = sr[len(m.group(0)):]
+            m = tailtag.search(seq)
+            if m:
+                sr = sr[:-len(m.group(0))]
+            print(sr.format('fasta'), end='', file=outfile)
+    else:
+        print(obuf.getvalue(), file=outfile)
+
+    obuf.close()
 
     return 0
 
@@ -84,19 +99,24 @@ if __name__ == '__main__':
         help='save alignment to OUTPUT'
     )
     parser.add_argument(
-        '-P', '--permute',
+        '-p', '--permute',
         action='store_true',
         help='permute the reference by translate+untranslate the sequence'
     )
     parser.add_argument(
-        '-N', '--readnumber',
+        '-n', '--readnumber',
         metavar='READNUMBER',
         type=int,
         default=1000,
         help='target number of reads generated from this gene'
     )
     parser.add_argument(
-        '-H', '--hperrors',
+        '-t', '--tags',
+        action='store_true',
+        help='leave in 454 adaptamer tags'
+    )
+    parser.add_argument(
+        '-e', '--errors',
         action='store_true',
         help='introduce homopolymer length miscalls'
     )
@@ -110,7 +130,8 @@ if __name__ == '__main__':
             args.output,
             args.permute,
             args.readnumber,
-            args.hperrors
+            args.tags,
+            args.errors
         )
     finally:
         if args is not None:
