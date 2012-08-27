@@ -167,11 +167,11 @@ for ( _aln_idx = 0; _aln_idx < _aln_numseqs; _aln_idx += 1 ) {
 
 _aln_alnopts = {};
 _aln_alnopts ["SEQ_ALIGN_SCORE_MATRIX"] = _aln_scorematrix;
-_aln_alnopts ["SEQ_ALIGN_GAP_OPEN"] = 40;
+_aln_alnopts ["SEQ_ALIGN_GAP_OPEN"] = 20;
 _aln_alnopts ["SEQ_ALIGN_AFFINE"] = 1;
 _aln_alnopts ["SEQ_ALIGN_GAP_OPEN2"] = 20;
 _aln_alnopts ["SEQ_ALIGN_GAP_EXTEND2"] = 1;
-_aln_alnopts ["SEQ_ALIGN_GAP_EXTEND"] = 10;
+_aln_alnopts ["SEQ_ALIGN_GAP_EXTEND"] = 1;
 _aln_alnopts ["SEQ_ALIGN_NO_TP"] = 1; // this means local alignment, apparently
 _aln_alnopts ["SEQ_ALIGN_CHARACTER_MAP"] = _aln_letters;
 
