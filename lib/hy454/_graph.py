@@ -50,6 +50,15 @@ _HY454_FONT_PATHS = [join(dirname(__file__), 'data', 'fonts', 'ttf')]
 _ROBOTO_REGULAR = FontProperties(fname=join(_HY454_FONT_PATHS[0], 'Roboto-Regular.ttf'))
 
 
+def _adjust_spines_outward(ax, spines, points):
+    for loc, spine in ax.spines.items():
+        if loc in spines:
+            spine.set_position(('outward', points))
+            spine.set_smart_bounds(True)
+        else:
+            spine.set_color('none')
+
+
 def _max_nonzero_min(values, default=0):
     vmax = max(values)
     vmin = vmax
@@ -155,6 +164,9 @@ def graph_coverage_majority(
     rect = 0.2, 0.2, 1, 0.618
     ax1 = fig.add_axes(rect)
 
+    # move the axis spines off the data
+    # _adjust_spines_outward(ax1, ('bottom', 'left', 'right'), 18)
+
     majorities = np.zeros((N - n0,), dtype=float)
     if mode & MAJORITY:
         for i, col in enumerate(range(n0, N)):
@@ -178,7 +190,7 @@ def graph_coverage_majority(
                 majorities[i] = m * frac
         ax1.plot(
             xs, majorities,
-            color=_LRED, linewidth=1., zorder=-1
+            color=_LRED, linewidth=1., zorder=-1, alpha=0.8 if mode & COVERAGE else 1.0
         )
 
     if mode & COVERAGE:
@@ -202,11 +214,11 @@ def graph_coverage_majority(
         leg = ax1.legend(
             [p1, p2], ['Coverage', 'Majority'],
             bbox_to_anchor=(0.5, -0.15), loc=9, ncol=2,
-            prop={ 'size': 12 }, borderpad=0.
+            prop=_ROBOTO_REGULAR, borderpad=0.
         )
         leg.legendPatch.set_alpha(0.)
         extra_artists.append(leg)
-#         ax1.set_ylabel('Coverage - majority', fontproperties=_ROBOTO_REGULAR)
+        # ax1.set_ylabel('Coverage - majority', fontproperties=_ROBOTO_REGULAR)
     elif mode == COVERAGE:
         ax1.fill_between(
             xs, heights, majorities,
@@ -222,6 +234,7 @@ def graph_coverage_majority(
     ax1.yaxis.set_major_formatter(FuncFormatter(format_percent))
     ax1.set_yticks(np.arange(0.2, 1.1, 0.2))
     ax1.set_xlim((n0 + 1, N))
+    ax1.set_ylim((0, 1))
 
     major_ticks = ax1.xaxis.get_major_ticks(len(xticks))
 
@@ -242,8 +255,15 @@ def graph_coverage_majority(
         # alter axes to show max, min value
         maxM, minM = _max_nonzero_min(majorities)
         ax1.spines['left'].set_bounds(minM, maxM)
+        # set font properties
+        ticklabels = (
+            ax1.xaxis.get_ticklabels() +
+            ax1.yaxis.get_ticklabels()
+        )
     else:
         ax2 = ax1.twinx()
+        # move the axis spines off the data
+        # _adjust_spines_outward(ax2, ('bottom', 'left', 'right'), 18)
         ax2.set_ylabel('No. of sequences', rotation=270., fontproperties=_ROBOTO_REGULAR)
         ax2.set_xticks(xticks)
         ax2.set_yticks(yticks)
@@ -258,6 +278,16 @@ def graph_coverage_majority(
         maxH, minH = _max_nonzero_min(heights)
         ax1.spines['left'].set_bounds(minH, maxH)
         ax1.spines['right'].set_bounds(minH, maxH)
+        # set font properties
+        ticklabels = (
+            ax1.xaxis.get_ticklabels() +
+            ax1.yaxis.get_ticklabels() +
+            ax2.xaxis.get_ticklabels() +
+            ax2.yaxis.get_ticklabels()
+        )
+
+    for label in ticklabels:
+        label.set_fontproperties(_ROBOTO_REGULAR)
 
     if transparent:
         fig.patch.set_alpha(0.)
@@ -467,6 +497,10 @@ def graph_logo(
     # rotate the x-axis labels by 45 degrees to enhance packing
     for label in ax.xaxis.get_ticklabels():
         label.set_rotation(45)
+
+    # set font properties
+    for label in ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels():
+        label.set_fontproperties(_ROBOTO_REGULAR)
 
     # disable top and right spines, we don't need them
     ax.spines['bottom'].set_visible(False)
