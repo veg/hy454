@@ -54,9 +54,8 @@ def _adjust_spines_outward(ax, spines, points):
     for loc, spine in ax.spines.items():
         if loc in spines:
             spine.set_position(('outward', points))
-            spine.set_smart_bounds(True)
-        else:
-            spine.set_color('none')
+            # do not call set_smart_bounds, it removes ticks for some reason
+            # spine.set_smart_bounds(True)
 
 
 def _max_nonzero_min(values, default=0):
@@ -148,10 +147,10 @@ def graph_coverage_majority(
 
     ydiv = 10 ** int(np.log10(M) - specialK) or 1
     ysep = ydiv * int(M / 5 / ydiv + 1)
-    yticks = np.arange(ysep, M+ysep, ysep)
+    yticks = np.arange(0, M+ysep, ysep)
     if len(yticks) > 1:
         if M - yticks[-2] < ysep / 4:
-            yticks = np.arange(ysep, M, ysep)
+            yticks = np.arange(0, M, ysep)
     yticks[-1] = M
 
     # mpl.rcParams['font.family'] = 'sans-serif'
@@ -165,7 +164,7 @@ def graph_coverage_majority(
     ax1 = fig.add_axes(rect)
 
     # move the axis spines off the data
-    # _adjust_spines_outward(ax1, ('bottom', 'left', 'right'), 18)
+    _adjust_spines_outward(ax1, ('left', 'right'), 18)
 
     majorities = np.zeros((N - n0,), dtype=float)
     if mode & MAJORITY:
@@ -190,7 +189,7 @@ def graph_coverage_majority(
                 majorities[i] = m * frac
         ax1.plot(
             xs, majorities,
-            color=_LRED, linewidth=1., zorder=-1, alpha=0.8 if mode & COVERAGE else 1.0
+            color=_LRED, linewidth=1., zorder=-2 #, alpha=0.8 if mode & COVERAGE else 1.0
         )
 
     if mode & COVERAGE:
@@ -205,7 +204,7 @@ def graph_coverage_majority(
     if mode == (COVERAGE | MAJORITY):
         ax1.plot(
             xs, heights,
-            color=_LBLUE, linewidth=1., zorder=-2
+            color=_LBLUE, linewidth=1., zorder=-1
         )
         # create a proxy artist for legend, PolyCollections don't work (heights)
         p1 = Line2D([0, 1], [0, 1], color=_LBLUE, linewidth=1.)
@@ -232,7 +231,7 @@ def graph_coverage_majority(
         return '%1.0f%%' % (100 * x)
 
     ax1.yaxis.set_major_formatter(FuncFormatter(format_percent))
-    ax1.set_yticks(np.arange(0.2, 1.1, 0.2))
+    ax1.set_yticks(np.arange(0, 1.1, 0.2))
     ax1.set_xlim((n0 + 1, N))
     ax1.set_ylim((0, 1))
 
@@ -243,6 +242,15 @@ def graph_coverage_majority(
     major_ticks[0].tick1On = False
     major_ticks[-1].tick1On = False
 
+    # alter axes to show max, min value
+    maxM, minM = _max_nonzero_min(majorities)
+    if mode & MAJORITY:
+        ax1.spines['left'].set_bounds(minM, maxM)
+
+    maxH, minH = _max_nonzero_min(heights)
+    if mode & COVERAGE:
+        ax1.spines['left'].set_bounds(minH, maxH)
+
     # if we're only doing coverage, include the number
     # of sequences, but with majority in the mix
     # it doesn't make sense
@@ -252,9 +260,6 @@ def graph_coverage_majority(
         # remove the ticks and spine
         major_ticks += ax1.yaxis.get_major_ticks()
         ax1.spines['right'].set_visible(False)
-        # alter axes to show max, min value
-        maxM, minM = _max_nonzero_min(majorities)
-        ax1.spines['left'].set_bounds(minM, maxM)
         # set font properties
         ticklabels = (
             ax1.xaxis.get_ticklabels() +
@@ -263,10 +268,10 @@ def graph_coverage_majority(
     else:
         ax2 = ax1.twinx()
         # move the axis spines off the data
-        # _adjust_spines_outward(ax2, ('bottom', 'left', 'right'), 18)
+        _adjust_spines_outward(ax2, ('right',), 18)
         ax2.set_ylabel('No. of sequences', rotation=270., fontproperties=_ROBOTO_REGULAR)
-        ax2.set_xticks(xticks)
         ax2.set_yticks(yticks)
+        ax2.set_xticks(xticks)
         # set transparent here otherwise ax2 doesn't exist
         if transparent:
             ax2.patch.set_alpha(0.)
@@ -274,10 +279,6 @@ def graph_coverage_majority(
         major_ticks += ax2.xaxis.get_major_ticks()
         # disable the top spines, like we do later
         ax2.spines['top'].set_visible(False)
-        # use the axes spines to show the maximum value
-        maxH, minH = _max_nonzero_min(heights)
-        ax1.spines['left'].set_bounds(minH, maxH)
-        ax1.spines['right'].set_bounds(minH, maxH)
         # set font properties
         ticklabels = (
             ax1.xaxis.get_ticklabels() +
@@ -285,6 +286,20 @@ def graph_coverage_majority(
             ax2.xaxis.get_ticklabels() +
             ax2.yaxis.get_ticklabels()
         )
+
+    if mode == (COVERAGE | MAJORITY):
+        # use the axes spines to show the maximum value
+        ax1.spines['right'].set_bounds(minM, maxM)
+        # set the colors of the axis spines to correspond to the data
+        ax1.spines['left'].set_color(_LBLUE)
+        ax1.spines['right'].set_color(_LRED)
+        for tick in ax1.yaxis.get_major_ticks():
+            tick.tick1line.set_color(_LBLUE)
+        for tick in ax2.yaxis.get_major_ticks():
+            tick.tick2line.set_color(_LRED)
+    elif mode == COVERAGE:
+        # use the axes spines to show the maximum value
+        ax1.spines['right'].set_bounds(minH, maxH)
 
     for label in ticklabels:
         label.set_fontproperties(_ROBOTO_REGULAR)
