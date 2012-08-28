@@ -21,8 +21,8 @@ from Bio.Alphabet.IUPAC import (ambiguous_dna, ambiguous_rna,
 from Bio.Motif import Motif
 from Bio.Seq import Seq
 
-from matplotlib.font_manager import (createFontList,
-        findSystemFonts, fontManager)
+from matplotlib.font_manager import (FontProperties,
+        createFontList, findSystemFonts, fontManager)
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import FormatStrFormatter, FuncFormatter
@@ -45,8 +45,9 @@ _HY454_FONT_PATHS = [join(dirname(__file__), 'data', 'fonts', 'ttf')]
 
 
 # update the fontManager to handle the Roboto font installed with hy454
-fontManager.ttffiles.extend(findSystemFonts(_HY454_FONT_PATHS))
-fontManager.ttflist = createFontList(fontManager.ttffiles)
+# fontManager.ttffiles.extend(findSystemFonts(_HY454_FONT_PATHS))
+# fontManager.ttflist = createFontList(fontManager.ttffiles)
+_ROBOTO_REGULAR = FontProperties(fname=join(_HY454_FONT_PATHS[0], 'Roboto-Regular.ttf'))
 
 
 def _max_nonzero_min(values, default=0):
@@ -144,12 +145,13 @@ def graph_coverage_majority(
             yticks = np.arange(ysep, M, ysep)
     yticks[-1] = M
 
-    mpl.rcParams['font.family'] = 'sans-serif'
-    mpl.rcParams['font.sans-serif'] = 'Roboto'
+    # mpl.rcParams['font.family'] = 'sans-serif'
+    # mpl.rcParams['font.sans-serif'] = 'Roboto'
+    # mpl.rcParams['font.weight'] = '400'
 
     fig = plt.figure(figsize=figsize, dpi=dpi)
 
-    # golden rectangle! 
+    # golden rectangle!
     rect = 0.2, 0.2, 1, 0.618
     ax1 = fig.add_axes(rect)
 
@@ -184,7 +186,7 @@ def graph_coverage_majority(
             heights[i] = sum(frac for p in alignment[:, col] if p != _GAP)
 
     # labels
-    ax1.set_xlabel('Reference sequence position')
+    ax1.set_xlabel('Reference sequence position', fontproperties=_ROBOTO_REGULAR)
 
     extra_artists = []
 
@@ -204,15 +206,15 @@ def graph_coverage_majority(
         )
         leg.legendPatch.set_alpha(0.)
         extra_artists.append(leg)
-#         ax1.set_ylabel('Coverage - majority')
+#         ax1.set_ylabel('Coverage - majority', fontproperties=_ROBOTO_REGULAR)
     elif mode == COVERAGE:
         ax1.fill_between(
             xs, heights, majorities,
             edgecolor=_LBLUE, facecolor=_LBLUE, linewidth=1., zorder=-1
         )
-        ax1.set_ylabel('Coverage')
+        ax1.set_ylabel('Coverage', fontproperties=_ROBOTO_REGULAR)
     else:
-        ax1.set_ylabel('Proportion')
+        ax1.set_ylabel('Proportion', fontproperties=_ROBOTO_REGULAR)
 
     def format_percent(x, pos=None):
         return '%1.0f%%' % (100 * x)
@@ -230,7 +232,7 @@ def graph_coverage_majority(
 
     # if we're only doing coverage, include the number
     # of sequences, but with majority in the mix
-    # it doesn't make sense 
+    # it doesn't make sense
     if mode == MAJORITY:
         ax1.set_xticks(xticks)
         # if we're not showing the # of sequences on the left,
@@ -242,7 +244,7 @@ def graph_coverage_majority(
         ax1.spines['left'].set_bounds(minM, maxM)
     else:
         ax2 = ax1.twinx()
-        ax2.set_ylabel('No. of sequences', rotation=270.)
+        ax2.set_ylabel('No. of sequences', rotation=270., fontproperties=_ROBOTO_REGULAR)
         ax2.set_xticks(xticks)
         ax2.set_yticks(yticks)
         # set transparent here otherwise ax2 doesn't exist
@@ -261,7 +263,7 @@ def graph_coverage_majority(
         fig.patch.set_alpha(0.)
         ax1.patch.set_alpha(0.)
 
-    # remove the upper ticks 
+    # remove the upper ticks
     for tick in major_ticks:
         tick.tick2On = False
 
@@ -287,7 +289,7 @@ _AMINO_ALPHABET = HasStopCodon(Gapped(extended_protein, gap_char=_GAP), stop_sym
 def _fix_ambigs(pwm, alphabet):
     mapper = {}
     killchars = _GAP
-    # killchars ambigs by distributing their probability uniformly 
+    # killchars ambigs by distributing their probability uniformly
     if alphabet == _DNA_ALPHABET or alphabet == _RNA_ALPHABET:
         T = 'T' if alphabet == _DNA_ALPHABET else 'U'
         mapper.update({
@@ -409,14 +411,14 @@ def graph_logo(
     pwm = _fix_ambigs(motif.pwm(laplace=False), alph)
 
     # heuristic to determine whether nucleotide or protein alphabet
-    # need to use either base 4 or 20 depending 
+    # need to use either base 4 or 20 depending
     alphlen, _alphkeys = max([(len(pwm[i]), pwm[i].keys()) for i in range(N)], key=itemgetter(0))
     s, colors = (4, _DNA_COLORS) if alphlen < 20 else (20, _AMINO_COLORS)
     alphkeys = ['']
     alphkeys.extend(_alphkeys)
     alphmap = dict(zip(alphkeys, range(len(alphkeys))))
 
-    # compute the information content at each position 
+    # compute the information content at each position
     maxbits = np.log2(s)
     e_n = (s - 1) / (2. * np.log(2) * M)
     R = maxbits * np.ones((N,), dtype=float)
@@ -435,16 +437,17 @@ def graph_logo(
 
     font = Basefont(join(_HY454_FONT_PATHS[0], 'Roboto-Black.ttf'))
 
-    mpl.rcParams['font.family'] = 'sans-serif'
-    mpl.rcParams['font.sans-serif'] = 'Roboto'
+    # mpl.rcParams['font.family'] = 'sans-serif'
+    # mpl.rcParams['font.sans-serif'] = 'Roboto'
+    # mpl.rcParams['font.weight'] = '400'
 
     fig = plt.figure(figsize=figsize, dpi=dpi)
 
-    # make each column a vertical golden rect 
+    # make each column a vertical golden rect
     rect = 0.2, 0.2, 0.382 * N, 0.618
     ax = fig.add_axes(rect)
 
-    ax.set_ylabel('bits')
+    ax.set_ylabel('bits', fontproperties=_ROBOTO_REGULAR)
 
     if figsize is None:
         fig.set_figwidth(N)
