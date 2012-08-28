@@ -4,60 +4,76 @@ from __future__ import division, print_function
 
 import sys
 
-from os import getcwd
-from os.path import exists, join
+from argparse import ArgumentParser, ArgumentTypeError, FileType
 
 from Bio import AlignIO
 
 from hy454 import graph_logo
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
+def csvtype(string):
+    return string.split(',')
 
+
+def spectype(string):
     try:
-        labels = None
-        for i in range(len(argv)-2, -1, -1):
-            arg = argv[i]
-            if arg[0] == '-':
-                if arg[1] == 'l':
-                    labels = argv[i+1].split(',')
-                    del argv[i]
-                    del argv[i]
-                else:
-                    assert(0)
-        assert(len(argv) == 3)
-        assert(exists(argv[0]))
+        colspec = []
+        if ':' in string:
+            xyz = [int(v) for v in string.split(':', 2) if v]
+            xyz[0] -= 1
+            colspec.extend(v for v in range(*xyz))
+        else:
+            colspec.extend(int(v) - 1 for v in string.split(',') if v)
+        return colspec
+    except ValueError:
+        msg = 'COLSPEC must be a comma-delimited list of 1-indices or a colon-delimited range specification start:stop[:skip]'
+        raise ArgumentTypeError(msg)
 
-        # now handle column specification
-        colspecs = argv[1].split(',')
-        columns = []
-        for colspec in colspecs:
-            if ':' in colspec:
-                xyz = [int(v) for v in colspec.split(':')]
-                xyz[1] += 1
-                if len(xyz) in (2, 3):
-                    columns.extend(range(*xyz))
-                else:
-                    raise ValueError()
-            else:
-                columns.append(int(colspec))
-        assert(True if labels is None else len(labels) == len(columns))
-    except:
-        print('usage: seqlogo [-l LABELS] MSAFILE COLSPEC OUTPUTFILE', file=sys.stderr)
-        print('  COLSPEC must be a comma-delimited list of 1-indices or colon-delimited range specifications start:stop[:skip]', file=sys.stderr)
-        sys.exit(-1)
 
-    filename = join(getcwd(), argv[2])
-
-    with open(argv[0]) as fh:
-        msa = AlignIO.read(fh, 'fasta')
-
-    graph_logo(msa, columns, filename, format='pdf', labels=labels)
-
+def main(infile, colspec, filename, labels):
+    msa = AlignIO.read(infile, 'fasta')
+    graph_logo(msa, colspec, filename, format='pdf', labels=labels)
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    parser = ArgumentParser(description='generate a SeqLogo from an MSA')
+    parser.add_argument(
+        '-l', '--labels',
+        metavar='LABELS',
+        type=csvtype,
+        help='comma-delimited list of column labels'
+    )
+    parser.add_argument(
+        'input',
+        metavar='MSA',
+        type=FileType('r'),
+        default=sys.stdin,
+        help='aligned FASTA file'
+    )
+    parser.add_argument(
+        'colspec',
+        metavar='COLSPEC',
+        type=spectype,
+        help='comma-delimited list of 1-indices or a colon-delimited range specification start:stop[:skip]'
+    )
+    parser.add_argument(
+        'output',
+        metavar='PDF',
+        type=FileType('w'),
+        default=sys.stdout,
+        help='output PDF file'
+    )
+
+    ns = None
+    retcode = -1
+    try:
+        ns = parser.parse_args()
+        filename = ns.output.name
+        ns.output.close()
+        retcode = main(ns.input, ns.colspec, filename, ns.labels)
+    finally:
+        if ns is not None:
+            if ns.input not in (None, sys.stdin):
+                ns.input.close()
+    sys.exit(retcode)
