@@ -2,7 +2,6 @@
 from __future__ import division, print_function
 
 import matplotlib as mpl
-mpl.use('pdf')
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -153,10 +152,6 @@ def graph_coverage_majority(
             yticks = np.arange(0, M, ysep)
     yticks[-1] = M
 
-    # mpl.rcParams['font.family'] = 'sans-serif'
-    # mpl.rcParams['font.sans-serif'] = 'Roboto'
-    # mpl.rcParams['font.weight'] = '400'
-
     fig = plt.figure(figsize=figsize, dpi=dpi)
 
     # golden rectangle!
@@ -187,14 +182,22 @@ def graph_coverage_majority(
                 majorities[i] = m / s
             else:
                 majorities[i] = m * frac
-        ax1.plot(
+        lines = ax1.plot(
             xs, majorities,
-            color=_LRED, linewidth=1., zorder=-2 #, alpha=0.8 if mode & COVERAGE else 1.0
+            color=_LRED, linewidth=1., zorder=-2
         )
+        for l in lines:
+            l.set_clip_on(False)
 
     if mode & COVERAGE:
         for i, col in enumerate(range(n0, N)):
             heights[i] = sum(frac for p in alignment[:, col] if p != _GAP)
+        lines = ax1.plot(
+            xs, heights,
+            color=_LBLUE, linewidth=1., zorder=-1
+        )
+        for l in lines:
+            l.set_clip_on(False)
 
     # labels
     ax1.set_xlabel('Reference sequence position', fontproperties=_ROBOTO_REGULAR)
@@ -202,16 +205,12 @@ def graph_coverage_majority(
     extra_artists = []
 
     if mode == (COVERAGE | MAJORITY):
-        ax1.plot(
-            xs, heights,
-            color=_LBLUE, linewidth=1., zorder=-1
-        )
         # create a proxy artist for legend, PolyCollections don't work (heights)
         p1 = Line2D([0, 1], [0, 1], color=_LBLUE, linewidth=1.)
         # create a proxy artist for legend, [Lines2D] don't work (majorities)
         p2 = Line2D([0, 1], [0, 1], color=_LRED, linewidth=1.)
         leg = ax1.legend(
-            [p1, p2], ['Coverage', 'Majority'],
+            [p1, p2], ['Coverage', 'Majority proportion'],
             bbox_to_anchor=(0.5, -0.15), loc=9, ncol=2,
             prop=_ROBOTO_REGULAR, borderpad=0.
         )
@@ -219,13 +218,9 @@ def graph_coverage_majority(
         extra_artists.append(leg)
         # ax1.set_ylabel('Coverage - majority', fontproperties=_ROBOTO_REGULAR)
     elif mode == COVERAGE:
-        ax1.fill_between(
-            xs, heights, majorities,
-            edgecolor=_LBLUE, facecolor=_LBLUE, linewidth=1., zorder=-1
-        )
         ax1.set_ylabel('Coverage', fontproperties=_ROBOTO_REGULAR)
     else:
-        ax1.set_ylabel('Proportion', fontproperties=_ROBOTO_REGULAR)
+        ax1.set_ylabel('Majority proportion', fontproperties=_ROBOTO_REGULAR)
 
     def format_percent(x, pos=None):
         return '%1.0f%%' % (100 * x)
@@ -482,15 +477,13 @@ def graph_logo(
 
     font = Basefont(join(_HY454_FONT_PATHS[0], 'Roboto-Black.ttf'))
 
-    # mpl.rcParams['font.family'] = 'sans-serif'
-    # mpl.rcParams['font.sans-serif'] = 'Roboto'
-    # mpl.rcParams['font.weight'] = '400'
-
     fig = plt.figure(figsize=figsize, dpi=dpi)
 
     # make each column a vertical golden rect
     rect = 0.2, 0.2, 0.382 * N, 0.618
     ax = fig.add_axes(rect)
+
+    _adjust_spines_outward(ax, ('left',), 9)
 
     ax.set_ylabel('bits', fontproperties=_ROBOTO_REGULAR)
 
@@ -531,7 +524,13 @@ def graph_logo(
     ax.yaxis.set_major_formatter(FormatStrFormatter('%1.1f'))
 
     # set the ticks
-    ax.set_yticks(np.append(np.arange(0, maxbits, 0.5, dtype=float), maxbits))
+    ysep = 0.5 if alphlen < 20 else 1.0
+    yticks = np.arange(0, maxbits, ysep, dtype=float)
+    if maxbits - yticks[-1] < ysep:
+        yticks[-1] = maxbits
+    else:
+        yticks = np.append(yticks, maxbits)
+    ax.set_yticks(yticks)
     ax.set_xticks(np.arange(1, N+1, dtype=float) + 0.5)
 
     # set the axes limits here AFTER the ticks, otherwise borkage
@@ -556,7 +555,7 @@ def graph_logo(
                 glyph.set_zorder(-1)
 
     # set the remaining spine to show the maximum value
-    ax.spines['left'].set_bounds(0., max(bottoms))
+    ax.spines['left'].set_bounds(0, max(bottoms))
 
     fig.savefig(filename, format=format, transparent=transparent, bbox_inches='tight', pad_inches=0.25)
 
