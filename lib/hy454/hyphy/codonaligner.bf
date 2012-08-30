@@ -400,7 +400,7 @@ for ( _cdnaln_idx = 0; _cdnaln_idx < _cdnaln_numseqs; _cdnaln_idx += 1 )
     // align the sequences and get the score
     _cdnaln_inseqs = {{ _cdnaln_refseq, _cdnaln_seqs[ _cdnaln_idx ] }};
     AlignSequences ( _cdnaln_alnseqs, _cdnaln_inseqs, _cdnaln_alnopts );
-    fprintf( stdout, "\n" + ( _cdnaln_alnseqs[0] )[1] + "\n" + ( _cdnaln_alnseqs[0] )[2] + "\n" );
+    // fprintf( stdout, "\n" + ( _cdnaln_alnseqs[0] )[1] + "\n" + ( _cdnaln_alnseqs[0] )[2] + "\n" );
     // divide the score by the length of the input sequence (which is assumed to be gapless)
     _cdnaln_score = ( _cdnaln_alnseqs[0] )[0] / _cdnaln_seqlen;
     if ( _cdnaln_dorevcomp ) {
