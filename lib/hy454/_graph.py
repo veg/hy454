@@ -91,8 +91,9 @@ def graph_coverage_majority(
         figsize = (6, 6)
 
     if refidx >= 0:
-        alignment = alignment[:refidx]
-        alignment.extend(alignment[refidx + 1:])
+        msa = alignment
+        alignment = msa[:refidx]
+        alignment.extend(msa[refidx + 1:])
 
     n0 = 0
     M = len(alignment)
@@ -435,8 +436,9 @@ def graph_logo(
         labels = ['%d' % (idx + 1) for idx in columns]
 
     if refidx >= 0:
-        alignment = alignment[:refidx]
-        alignment.extend(alignment[refidx + 1:])
+        msa = alignment
+        alignment = msa[:refidx]
+        alignment.extend(msa[refidx + 1:])
 
     M = len(alignment)
     N = len(columns)
