@@ -48,7 +48,7 @@ def determine_refseq(seqrecords, mode):
     if mode == CUSTOM:
         seq = input("Input the entire reference sequence without newlines :: ")
         refseq = SeqRecord(Seq(seq, generic_nucleotide),
-                id="ref", name="reference",
+                id="reference", name="reference",
                 description="Custom reference sequence")
     elif mode == FIRST:
         refseq = seqrecords.pop(0)

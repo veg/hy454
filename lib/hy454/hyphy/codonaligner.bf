@@ -205,10 +205,10 @@ function cSM2partialSMs(_cdnScoreMatrix)
     m3x1  =  { 65,  12 };
 
     // minor penalties to make mismatch not entirely free
-    p3x5 = 0;
-    p3x4 = 0;
-    p3x2 = 0;
-    p3x1 = 0;
+    p3x5 = 2*p3x4;;
+    p3x4 = 1;
+    p3x2 = 1;
+    p3x1 = 2*p3x2;
 
     for ( thisCodon = 0; thisCodon < 64; thisCodon += 1 ) {
         for ( d1 = 0; d1 < 4; d1 += 1 ) {
@@ -363,12 +363,12 @@ _cdnaln_cdnScoreMatrix = pSM2cSM(_cdnaln_scorematrix, _cdnaln_letters);
 
 _cdnaln_alnopts = {};
 _cdnaln_alnopts ["SEQ_ALIGN_SCORE_MATRIX"] = _cdnaln_cdnScoreMatrix;
-_cdnaln_alnopts ["SEQ_ALIGN_GAP_OPEN"] = 20;
+_cdnaln_alnopts ["SEQ_ALIGN_GAP_OPEN"] = -2.5 * Min( _cdnaln_scorematrix, 0 );
 _cdnaln_alnopts ["SEQ_ALIGN_AFFINE"] = 1;
-_cdnaln_alnopts ["SEQ_ALIGN_GAP_OPEN2"] = 20;
+_cdnaln_alnopts ["SEQ_ALIGN_GAP_OPEN2"] = -1.5 * Min( _cdnaln_scorematrix, 0 );
 _cdnaln_alnopts ["SEQ_ALIGN_GAP_EXTEND2"] = 1;
 _cdnaln_alnopts ["SEQ_ALIGN_GAP_EXTEND"] = 1;
-_cdnaln_alnopts ["SEQ_ALIGN_FRAMESHIFT"] = -2*Min(_cdnaln_scorematrix,0);
+_cdnaln_alnopts ["SEQ_ALIGN_FRAMESHIFT"] = -Min( _cdnaln_scorematrix, 0 );
 _cdnaln_alnopts ["SEQ_ALIGN_CODON_ALIGN"] = 1;
 _cdnaln_alnopts ["SEQ_ALIGN_NO_TP"] = 1; // this means local alignment, apparently
 _cdnaln_alnopts ["SEQ_ALIGN_CHARACTER_MAP"] = "ACGT";

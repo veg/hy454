@@ -30,9 +30,9 @@ def spectype(string):
         raise ArgumentTypeError(msg)
 
 
-def main(infile, colspec, filename, labels):
+def main(infile, colspec, filename, labels, refidx):
     msa = AlignIO.read(infile, 'fasta')
-    graph_logo(msa, colspec, filename, format='pdf', labels=labels)
+    graph_logo(msa, colspec, filename, format='pdf', labels=labels, refidx=refidx)
     return 0
 
 
@@ -64,6 +64,11 @@ if __name__ == '__main__':
         default=sys.stdout,
         help='output PDF file'
     )
+    parser.add_argument(
+        '-r', '--refidx',
+        type=int, default=0,
+        help='omit reference sequence which is REFIDX-th in the file (1-indexed)'
+    )
 
     ns = None
     retcode = -1
@@ -71,7 +76,7 @@ if __name__ == '__main__':
         ns = parser.parse_args()
         filename = ns.output.name
         ns.output.close()
-        retcode = main(ns.input, ns.colspec, filename, ns.labels)
+        retcode = main(ns.input, ns.colspec, filename, ns.labels, ns.refidx - 1)
     finally:
         if ns is not None:
             if ns.input not in (None, sys.stdin):

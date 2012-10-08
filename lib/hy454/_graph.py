@@ -73,7 +73,8 @@ def graph_coverage_majority(
     alignment,
     mode,
     filename=None,
-    dpi=None, figsize=None, format='pdf', transparent=True
+    dpi=None, figsize=None, format='pdf', transparent=True,
+    refidx=-1
 ):
     if not mode:
         mode = COVERAGE | MAJORITY
@@ -88,6 +89,10 @@ def graph_coverage_majority(
         # actually results in a graph that is almost 4" high
         # and 6.4" wide -- almost the golden ratio
         figsize = (6, 6)
+
+    if refidx >= 0:
+        alignment = alignment[:refidx]
+        alignment.extend(alignment[refidx + 1:])
 
     n0 = 0
     M = len(alignment)
@@ -417,7 +422,8 @@ def graph_logo(
     alignment,
     columns,
     filename=None,
-    dpi=None, edgecolor='k', figsize=None, format='pdf', labels=None, linewidth=0., transparent=True
+    dpi=None, edgecolor='k', figsize=None, format='pdf', labels=None, linewidth=0., transparent=True,
+    refidx=-1
 ):
     if filename is None:
         fd, filename = mkstemp(); close(fd)
@@ -427,6 +433,10 @@ def graph_logo(
 
     if labels is None:
         labels = ['%d' % (idx + 1) for idx in columns]
+
+    if refidx >= 0:
+        alignment = alignment[:refidx]
+        alignment.extend(alignment[refidx + 1:])
 
     M = len(alignment)
     N = len(columns)
@@ -443,7 +453,7 @@ def graph_logo(
 
     motif = Motif(alphabet=alph)
 
-    instances = [''.join(z).upper() for z in zip(*[alignment[:, i] for i in columns])]
+    instances = (''.join(z).upper() for z in zip(*[alignment[:, i] for i in columns]))
     for instance in instances:
         motif.add_instance(Seq(instance, alph))
 
@@ -452,7 +462,7 @@ def graph_logo(
 
     # heuristic to determine whether nucleotide or protein alphabet
     # need to use either base 4 or 20 depending
-    alphlen, _alphkeys = max([(len(pwm[i]), pwm[i].keys()) for i in range(N)], key=itemgetter(0))
+    alphlen, _alphkeys = max(((len(pwm[i]), pwm[i].keys()) for i in range(N)), key=itemgetter(0))
     s, colors = (4, _DNA_COLORS) if alphlen < 20 else (20, _AMINO_COLORS)
     alphkeys = ['']
     alphkeys.extend(_alphkeys)
@@ -462,7 +472,7 @@ def graph_logo(
     maxbits = np.log2(s)
     e_n = (s - 1) / (2. * np.log(2) * M)
     R = maxbits * np.ones((N,), dtype=float)
-    R -= [-sum([v * np.log2(v) for _, v in pwm[i].items() if v > 0.]) for i in range(N)]
+    R -= [-sum(v * np.log2(v) for _, v in pwm[i].items() if v > 0.) for i in range(N)]
     R -= e_n
 
     heights = np.zeros((alphlen, N), dtype=float)

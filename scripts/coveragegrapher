@@ -12,14 +12,15 @@ from hy454 import (COVERAGE, MAJORITY,
     graph_coverage_majority)
 
 
-def main(infile, mode, outfile):
+def main(infile, mode, outfile, refidx):
     msa = AlignIO.read(infile, 'fasta')
 
     graph_coverage_majority(
         msa,
         mode,
         outfile,
-        format='pdf'
+        format='pdf',
+        refidx=refidx
     )
 
     return 0
@@ -52,12 +53,17 @@ if __name__ == '__main__':
         const=MAJORITY, default=0,
         help='include a majority plot in the graph'
     )
+    parser.add_argument(
+        '-r', '--refidx',
+        type=int, default=0,
+        help='omit reference sequence which is REFIDX-th in the file (1-indexed)'
+    )
 
     ns = None
     retcode = -1
     try:
         ns = parser.parse_args()
-        retcode = main(ns.input, ns.coverage | ns.majority, ns.output)
+        retcode = main(ns.input, ns.coverage | ns.majority, ns.output, ns.refidx - 1)
     finally:
         if ns is not None:
             if not ns.input in (None, sys.stdin):
