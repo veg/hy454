@@ -97,7 +97,7 @@ def cluster(seqs, k, m):
     # debug('computing pairwise distances')
     D = pairwise_distances(R, metric='cosine', n_jobs=-1)
     debug('clustering using dbscan')
-    db = DBSCAN(eps=0.05, min_samples=1, metric='precomputed').fit(D)
+    db = DBSCAN(eps=0.01, min_samples=10, metric='precomputed').fit(D)
     # core = db.core_sample_indices_
     labels = db.labels_
     labelset = set(labels)
