@@ -70,13 +70,14 @@ def embed(k, m, seqs):
     debug()
     # populate the reference distance matrix
     Q = np.zeros((T, T), dtype=float)
+    ncomp = T * T
     for i, s in enumerate(ref_counts):
         start = i + 1
         for j, r in enumerate(ref_counts[start:], start=start):
             d = kmer_dist(k, m, s, r)
             Q[i, j] = d
             Q[j, i] = d
-            debug('embedding %d references in %d dims: %3d%%\r' % (T, T, (100 * (i * T + j + 1) // (T * T), end='')
+            debug('embedding %d references in %d dims: %3d%%\r' % (T, T, 100 * (i * T + j + 1) // ncomp), end='')
     debug()
     # populate the embedding matrix
     R = np.zeros((N, T), dtype=float)
