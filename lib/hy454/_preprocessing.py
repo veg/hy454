@@ -62,7 +62,7 @@ def determine_refseq(seqrecords, mode):
 def align_to_refseq(refseq, seqrecords, score_matrix=None, codon=True, revcomp=True, expected_identity=0., keep_insertions=False, quiet=False):
     if score_matrix is None:
         score_matrix = BLOSUM62.load()
-    _, aligned, _, _, identities = Aligner(codon=codon)(
+    _, aligned, scores, overlaps, identities = Aligner(codon=codon)(
         str(refseq.seq),
         [str(s.seq) for s in seqrecords],
         score_matrix,
@@ -80,6 +80,9 @@ def align_to_refseq(refseq, seqrecords, score_matrix=None, codon=True, revcomp=T
         if expected_identity > 0. and identities[i] < 0:
             discarded_records.append(old)
         else:
+            annotations = deepcopy(old.annotations)
+            annotations['_nbpidentical'] = overlaps[i]
+            annotations['_pbpscore'] = scores[i]
             new = SeqRecord(
                 Seq(aln, generic_nucleotide),
                 old.id,
@@ -87,7 +90,7 @@ def align_to_refseq(refseq, seqrecords, score_matrix=None, codon=True, revcomp=T
                 old.description,
                 deepcopy(old.dbxrefs),
                 deepcopy(old.features),
-                deepcopy(old.annotations)
+                annotations
                 # don't grab the letter_annotations,
                 # they won't match anymore
             )
