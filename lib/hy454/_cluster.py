@@ -10,8 +10,11 @@ from re import compile as re_compile, I as re_I
 
 import numpy as np
 
-from sklearn.metrics.pairwise import pairwise_distances
+from scipy.spatial.distance import cosine
+
 from sklearn.cluster import DBSCAN
+from sklearn.externals.joblib import Parallel, delayed
+from sklearn.metrics.pairwise import pairwise_distances
 
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -19,7 +22,9 @@ from Bio.SeqRecord import SeqRecord
 
 
 DEBUG = True
-
+N_JOBS = -1
+PRE_DISPATCH = '5 * n_jobs'
+VERBOSE = 3
 
 def debug(string='', *args, **kwargs):
     if DEBUG:
@@ -42,14 +47,16 @@ def kmer_counts(k, m, s):
             c.update(p)
     return c
 
-def kmer_dist(k, m, a, b):
+def kmer_dist(a, b):
     ak = a.keys()
     bk = b.keys()
     s = np.sum((a[k] - b[k]) ** 2 for k in ak & bk)
     t = np.sum(a[k] ** 2 + b[k] ** 2 for k in ak ^ bk)
     return np.sqrt(s + t)
 
-def embed(k, m, seqs):
+def embed(k, m, seqs, dispatcher=None):
+    if dispatcher is None:
+        dispatcher = Parallel(n_jobs=N_JOBS, verbose=VERBOSE, pre_dispatch=PRE_DISPATCH)
     N = len(seqs)
     T = round(log(N) ** 2)
     step = round(N / T)
@@ -57,36 +64,27 @@ def embed(k, m, seqs):
     refs = list(set(str(s.seq) for i, s in enumerate(sorted(seqs, key=lambda s: -len(s))) if i % step == 0))
     T = len(refs)
     # get the counters for the seqs
-    seq_counts = []
-    for i, s in enumerate(seqs):
-        seq_counts.append(kmer_counts(k, m, s))
-        debug('computing %d-mer counts for %d seqs: %3d%%\r' % (k, N, 100 * (i + 1) // N), end='')
-    debug()
+    seq_counts = dispatcher(delayed(kmer_counts)(k, m, s) for s in seqs)
+    assert len(seq_counts) == N
     # get the counters for the refs
-    ref_counts = []
-    for i, r in enumerate(refs):
-        ref_counts.append(kmer_counts(k, m, r))
-        debug('computing %d-mer counts for %d refs: %3d%%\r' % (k, T, 100 * (i + 1) // T), end='')
-    debug()
+    ref_counts = dispatcher(delayed(kmer_counts)(k, m, r) for r in refs)
+    assert len(ref_counts) == T
     # populate the reference distance matrix
     Q = np.zeros((T, T), dtype=float)
-    ncomp = T * T
-    for i, s in enumerate(ref_counts):
-        start = i + 1
-        for j, r in enumerate(ref_counts[start:], start=start):
-            d = kmer_dist(k, m, s, r)
-            Q[i, j] = d
-            Q[j, i] = d
-            debug('embedding %d references in %d dims: %3d%%\r' % (T, T, 100 * (i * T + j + 1) // ncomp), end='')
-    debug()
+    debug('computing distance matrix for %d references' % T)
+    qs = dispatcher(delayed(kmer_dist)(s, r) for i, s in enumerate(ref_counts) for r in ref_counts[i + 1:])
+    assert len(qs) == (T * (T - 1) // 2)
+    idx = 0
+    for i in range(T):
+        for j in range(i + 1, T):
+            Q[i, j] = qs[idx]
+            Q[j, i] = qs[idx]
+            idx += 1
     # populate the embedding matrix
-    R = np.zeros((N, T), dtype=float)
-    ncomp = N * T
-    for i, s in enumerate(seq_counts):
-        for j, r in enumerate(ref_counts):
-            R[i, j] = kmer_dist(k, m, s, r)
-            debug('embedding %d sequences in %d dims: %3d%%\r' % (N, T, 100 * (i * T + j + 1) // ncomp), end='')
-    debug()
+    debug('embedding %d sequences in %d dimensions' % (N, T))
+    rs = dispatcher(delayed(kmer_dist)(s, r) for s in seq_counts for r in ref_counts)
+    assert len(rs) == (N * T)
+    R = np.array(rs, dtype=float).reshape((N, T))
     # normalize to unit lengths
     d = np.seterr(all='ignore')
     R = np.nan_to_num(R / (np.sum(R, axis=1)[:, np.newaxis]))
@@ -94,9 +92,19 @@ def embed(k, m, seqs):
     return Q, R
 
 def cluster(seqs, k, m):
-    Q, R = embed(k, m, seqs)
-    # debug('computing pairwise distances')
-    D = pairwise_distances(R, metric='cosine', n_jobs=-1)
+    dispatcher = Parallel(n_jobs=N_JOBS, verbose=VERBOSE, pre_dispatch=PRE_DISPATCH)
+    Q, R = embed(k, m, seqs, dispatcher)
+    N, T = R.shape
+    debug('computing pairwise distances')
+    ds = dispatcher(delayed(cosine)(R[i, :], R[j, :]) for i in range(N) for j in range(i + 1, N))
+    D = np.zeros((N, N), dtype=float)
+    idx = 0
+    for i in range(N):
+        for j in range(i + 1, N):
+            D[i, j] = ds[idx]
+            D[j, i] = ds[idx]
+            idx += 1
+    # cluster
     debug('clustering using dbscan')
     db = DBSCAN(eps=0.01, min_samples=10, metric='precomputed').fit(D)
     # core = db.core_sample_indices_
