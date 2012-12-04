@@ -27,7 +27,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.ticker import FormatStrFormatter, FuncFormatter
 from matplotlib.transforms import Affine2D
 
-from BioExt import _GAP, _STOP
+from BioExt.misc import _GAP, _STOP
 
 from ._basefont import Basefont
 

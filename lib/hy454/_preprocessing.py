@@ -9,7 +9,8 @@ from Bio.Alphabet import generic_nucleotide
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from BioExt import _GAP, BLOSUM62, enumerate_by_codon
+from BioExt.misc import _GAP, enumerate_by_codon
+from BioExt.scorematrix import BLOSUM62
 
 from ._aligner import Aligner
 

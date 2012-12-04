@@ -8,7 +8,7 @@ from operator import itemgetter
 from os.path import abspath, basename, dirname, exists, join, splitext
 from warnings import warn
 
-from BioExt import AmbigList, translate_ambiguous
+from BioExt.misc import AmbigList, translate_ambiguous
 
 
 __all__ = []
@@ -178,7 +178,7 @@ def DRAM_calculator_p(msa, mode=None, noise_threshold=4):
 
 # DRAM_AMBIGS_PESSIMISTIC, DRAM_AMBIGS_OPTIMISTIC = range (2)
 # DRAM_REPORT_COMPLETE, DRAM_REPORT_BY_DRUG, DRAM_REPORT_BY_MUTATION, DRAM_REPORT_BY_CLASS = range (4)
-# 
+#
 # def DRAM_reporter (positional_resistance_data, resistance_table = None, ambiguity_resolution = None, report_mode = None, mut_score_limit = 30, drug_resistance_limit = 30):
 # # positional_resistance_data is returned by DRAM_calculator
 #     if resistance_table is None:
@@ -190,15 +190,15 @@ def DRAM_calculator_p(msa, mode=None, noise_threshold=4):
 #         ambiguity_resolution = DRAM_AMBIGS_PESSIMISTIC
 #     if report_mode is None:
 #         report_mode = DRAM_REPORT_COMPLETE
-# 
+#
 #     dram_report = {}
-# 
+#
 #     # generate the full report by default, then condense if necessary
 #     # score by drug (with comments if sequenced completely or has noisy data): min and max
 #     # resistance mutations by drug class (can be limited to major)
 #     # resistance to classes e.g. NRTI : ['susceptible', 'resistant']
-# 
-# 
+#
+#
 #     for sequence_id in positional_resistance_data:
 #         if sequence_id == '>resistance table':
 #             continue
@@ -210,14 +210,14 @@ def DRAM_calculator_p(msa, mode=None, noise_threshold=4):
 #             noisy_positions   = 0
 #             missing_positions = 0
 #             major_DRAM        = []
-# 
+#
 #             list_of_positions_by_drug = resistance_table['by drug'][drug_name]
-# 
+#
 #             for position in list_of_positions_by_drug:
 #                 score = 0
 #                 in_this_sequence = sequence_info[str(position)]
 #                 resolution_scores = {}
-# 
+#
 #                 if in_this_sequence is None:
 #                     missing_positions += 1
 #                     continue
@@ -237,12 +237,12 @@ def DRAM_calculator_p(msa, mode=None, noise_threshold=4):
 #                     mutation,score  = _DRAM_resolve_score (resolution_scores, ambiguity_resolution)
 #                     if score >= mut_score_limit:
 #                         major_DRAM.append(resistance_table["mutations"][mutation]["Original"])
-# 
+#
 #                 total_score += score
-# 
+#
 #             sequence_report ['by drug'][drug_name] = {'covered' : covered_positions, 'missing' : missing_positions, 'noisy': noisy_positions, 'score':  total_score ,'mutations' : major_DRAM if len (major_DRAM) else None}
-# 
-# 
+#
+#
 #         sequence_report ['by class'] = {}
 #         for drug_class, class_info in resistance_table['by class'].items():
 #             report = {'mutations' : set(), 'resistant' : []}
@@ -254,10 +254,10 @@ def DRAM_calculator_p(msa, mode=None, noise_threshold=4):
 #                     report['mutations'].update (sequence_report ['by drug'][drug_id]['mutations'])
 #             report['mutations'] = list (report['mutations'])
 #             sequence_report ['by class'][drug_class] = report
-# 
+#
 #         dram_report [sequence_id] = sequence_report
 #         #assert False
-# 
+#
 #     if report_mode == DRAM_REPORT_BY_DRUG:
 #     # in this mode the report is of the form
 #     # seq id => list of drugs to which the sequence is resistant, grouped by class
@@ -289,8 +289,8 @@ def DRAM_calculator_p(msa, mode=None, noise_threshold=4):
 #                     class_list.add (drug_class)
 #             class_report [seq_id] = list(class_list)
 #         return class_report
-# 
-# 
+#
+#
 #     return dram_report
 
 
@@ -307,6 +307,6 @@ if __name__ == "__main__":
 #         with open (argv[1]) as positional_output:
 #             DRAM_data = json.load (positional_output)
 #             mode = int (argv[2])
-# 
+#
 #     print (json.dumps(DRAM_reporter (DRAM_data,report_mode = mode),sort_keys=True, indent=4))
 
