@@ -2,8 +2,11 @@
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from BioExt import (BLOSUM62,
-    DNA80, translate)
+from BioExt.misc import translate
+from BioExt.scorematrix import (
+    BLOSUM62,
+    DNA80
+    )
 
 from ._aligner import Aligner
 

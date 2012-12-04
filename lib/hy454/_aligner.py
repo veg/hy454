@@ -5,8 +5,12 @@ import json
 
 from os.path import abspath, exists, join, split
 
-from BioExt import (BLOSUM62, DNAExpIdScoreMatrix,
-    DNAScoreMatrix, ProteinScoreMatrix)
+from BioExt.scorematrix import (
+    BLOSUM62,
+    DNAExpIdScoreMatrix,
+    DNAScoreMatrix,
+    ProteinScoreMatrix
+    )
 
 from hppy import HyphyMap
 
