@@ -6,8 +6,17 @@ import argparse, sys
 
 from Bio import SeqIO
 
-from BioExt import (BLOSUM62, DNA65, DNA70, DNA80,
-    DNA88, DNA95, HIV_BETWEEN_F, PAM200, PAM250)
+from BioExt.scorematrix import (
+    BLOSUM62,
+    DNA65,
+    DNA70,
+    DNA80,
+    DNA88,
+    DNA95,
+    HIV_BETWEEN_F,
+    PAM200,
+    PAM250
+    )
 
 from hy454 import validate
 

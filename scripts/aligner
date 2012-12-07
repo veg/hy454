@@ -8,9 +8,18 @@ from json import dump as json_dump
 
 from Bio import SeqIO, AlignIO
 
-from BioExt import (hxb2, nl4_3, BLOSUM62,
-    DNA65, DNA70, DNA80, DNA88, DNA95,
-    HIV_BETWEEN_F, PAM200, PAM250)
+from BioExt.references import hxb2, nl4_3
+from BioExt.scorematrix import (
+    BLOSUM62,
+    DNA65,
+    DNA70,
+    DNA80,
+    DNA88,
+    DNA95,
+    HIV_BETWEEN_F,
+    PAM200,
+    PAM250
+    )
 
 from hy454 import align_to_refseq, to_positional
 
