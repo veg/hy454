@@ -2,10 +2,9 @@
 
 from __future__ import division, print_function
 
-import argparse, sys
+import sys
 
-from os import getcwd
-from os.path import exists, join
+from argparse import ArgumentParser, FileType
 
 from Bio import AlignIO
 
@@ -13,34 +12,33 @@ from hy454 import (COVERAGE, MAJORITY,
     graph_coverage_majority)
 
 
-def main(infile, mode, outfile):
+def main(infile, mode, outfile, refidx):
     msa = AlignIO.read(infile, 'fasta')
-
-    filename = join(getcwd(), outfile)
 
     graph_coverage_majority(
         msa,
         mode,
         outfile,
-        format='pdf'
+        format='pdf',
+        refidx=refidx
     )
 
     return 0
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         description='draw a coverage and/or majority graph of a multiple sequence alignment'
     )
     parser.add_argument(
         'input',
-        metavar='FASTAFILE',
-        type=argparse.FileType('r'),
+        metavar='MSA',
+        type=FileType('r'),
         help='aligned FASTA file'
     )
     parser.add_argument(
         'output',
-        metavar='PDFFILE',
+        metavar='PDF',
         help='output PDF file'
     )
     parser.add_argument(
@@ -55,14 +53,19 @@ if __name__ == '__main__':
         const=MAJORITY, default=0,
         help='include a majority plot in the graph'
     )
+    parser.add_argument(
+        '-r', '--refidx',
+        type=int, default=0,
+        help='omit reference sequence which is REFIDX-th in the file (1-indexed)'
+    )
 
-    args = None
+    ns = None
     retcode = -1
     try:
-        args = parser.parse_args()
-        retcode = main(args.input, args.coverage | args.majority, args.output)
+        ns = parser.parse_args()
+        retcode = main(ns.input, ns.coverage | ns.majority, ns.output, ns.refidx - 1)
     finally:
-        if args is not None:
-            if not args.input in (None, sys.stdin):
-                args.input.close()
+        if ns is not None:
+            if not ns.input in (None, sys.stdin):
+                ns.input.close()
     sys.exit(retcode)

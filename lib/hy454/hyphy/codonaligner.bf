@@ -80,7 +80,7 @@ function CleanAlignment( _aln, _keepIns )
         // count the number of insertions and deletions
         _cdnAdv = Min( 3, _nucLen - _l );
         for ( _k2 = 0; _k2 < _cdnAdv; _k2 += 1 ) {
-            if (_altRef[ _k+_k2 ] == "-") {
+            if ( _altRef[ _k+_k2 ] == "-" ) {
                 _ins += 1;
             } else {
                 if ( _altRef[ _k+_k2 ] == "_" ) {
@@ -114,7 +114,7 @@ function CleanAlignment( _aln, _keepIns )
                 // "_" means a deletion, add an "N" back in
                 if ( _altRef[ _k+_l2 ] == "_" ) {
                     _newRef * _ref[ _k+_l2 ];
-                    _newStr * "N";
+                    _newStr * "-"; // we used to add an N here, but that was controversial
 
                     _k2 += 1;
                 }
@@ -135,12 +135,23 @@ function CleanAlignment( _aln, _keepIns )
             _k += _l2;
         }
     }
+    // only uppercase when not keeping inserts
+    if ( _keepIns ) {
+        _rest = Abs( _seq ) - _k;
+        for ( _k2 = 0; _k2 < _rest; _k2 += 1 ) {
+            _newRef * "-";
+            _newStr * _seq[ _k+_k2 ];
+        }
+    } else {
+        _newRef = Uppercase( _newRef );
+        _newStr = Uppercase( _newStr );
+    }
     _newRef * 0;
     _newStr * 0;
     // get rid of any gaps
     // _newStr2 = _newStr^{{"[-]", ""}};
-    return { "ref": Uppercase( _newRef ),
-             "seq": Uppercase( _newStr ),
+    return { "ref": _newRef, 
+             "seq": _newStr, 
              "overlap": _overlap_count / 3 };
 }
 
@@ -194,10 +205,10 @@ function cSM2partialSMs(_cdnScoreMatrix)
     m3x1  =  { 65,  12 };
 
     // minor penalties to make mismatch not entirely free
-    p3x5 = 0;
-    p3x4 = 0;
-    p3x2 = 0;
-    p3x1 = 0;
+    p3x5 = 2*p3x4;;
+    p3x4 = 1;
+    p3x2 = 1;
+    p3x1 = 2*p3x2;
 
     for ( thisCodon = 0; thisCodon < 64; thisCodon += 1 ) {
         for ( d1 = 0; d1 < 4; d1 += 1 ) {
@@ -352,12 +363,12 @@ _cdnaln_cdnScoreMatrix = pSM2cSM(_cdnaln_scorematrix, _cdnaln_letters);
 
 _cdnaln_alnopts = {};
 _cdnaln_alnopts ["SEQ_ALIGN_SCORE_MATRIX"] = _cdnaln_cdnScoreMatrix;
-_cdnaln_alnopts ["SEQ_ALIGN_GAP_OPEN"] = 40;
+_cdnaln_alnopts ["SEQ_ALIGN_GAP_OPEN"] = -2.5 * Min( _cdnaln_scorematrix, 0 );
 _cdnaln_alnopts ["SEQ_ALIGN_AFFINE"] = 1;
-_cdnaln_alnopts ["SEQ_ALIGN_GAP_OPEN2"] = 20;
+_cdnaln_alnopts ["SEQ_ALIGN_GAP_OPEN2"] = -1.5 * Min( _cdnaln_scorematrix, 0 );
 _cdnaln_alnopts ["SEQ_ALIGN_GAP_EXTEND2"] = 1;
-_cdnaln_alnopts ["SEQ_ALIGN_GAP_EXTEND"] = 10;
-_cdnaln_alnopts ["SEQ_ALIGN_FRAMESHIFT"] = -2*Min(_cdnaln_scorematrix,0);
+_cdnaln_alnopts ["SEQ_ALIGN_GAP_EXTEND"] = 1;
+_cdnaln_alnopts ["SEQ_ALIGN_FRAMESHIFT"] = -Min( _cdnaln_scorematrix, 0 );
 _cdnaln_alnopts ["SEQ_ALIGN_CODON_ALIGN"] = 1;
 _cdnaln_alnopts ["SEQ_ALIGN_NO_TP"] = 1; // this means local alignment, apparently
 _cdnaln_alnopts ["SEQ_ALIGN_CHARACTER_MAP"] = "ACGT";

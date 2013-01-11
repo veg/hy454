@@ -1,5 +1,5 @@
 
-__version__ = '0.5.2'
+__version__ = '0.5.3'
 
 from ._aligner import *
 from ._annotate import *

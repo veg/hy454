@@ -2,8 +2,11 @@
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from BioExt import (BLOSUM62,
-    DNA80, translate)
+from BioExt.misc import translate
+from BioExt.scorematrix import (
+    BLOSUM62,
+    DNA80
+    )
 
 from ._aligner import Aligner
 
@@ -19,7 +22,7 @@ def validate(
     dna_mismatch=0,
     protein_mismatch=0,
     codon=True,
-    revcomp=False,
+    revcomp=True,
     expected_identity=0.,
     keep_insertions=True,
     quiet=False):
@@ -79,12 +82,17 @@ def validate(
             protein_scores.append(None)
         else:
             dna_scores.append(dna_score_matrix(r, q, dna_mismatch))
-            protein_scores.append(
-                protein_score_matrix(
-                    translate(r),
-                    translate(q),
-                    protein_mismatch
+            # we can translate codon-aligned sequences,
+            # but not DNA-aligned sequences
+            if codon:
+                protein_scores.append(
+                    protein_score_matrix(
+                        translate(r),
+                        translate(q),
+                        protein_mismatch
+                    )
                 )
-            )
+            else:
+                protein_scores.append(None)
 
     return lengths, dna_scores, protein_scores

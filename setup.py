@@ -27,12 +27,13 @@ setup(name='hy454',
       scripts=[
             'scripts/aligner',
             'scripts/coveragegrapher',
+            'scripts/genseq',
             'scripts/seqlogo',
             'scripts/validate'
       ],
       requires=[
             'Bio (>=1.58)',
-            'BioExt (>=0.9.8)',
+            'BioExt (>=0.10.2)',
             'fakemp (>=0.9.1)',
             'freetype (>=0.3.3)',
             'hppy (>=0.9.3)',
