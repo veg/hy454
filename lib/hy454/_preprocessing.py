@@ -10,7 +10,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from BioExt.misc import _GAP, enumerate_by_codon
-from BioExt.scorematrix import BLOSUM62
+from BioExt.scorematrices import BLOSUM62
 
 from ._aligner import Aligner
 

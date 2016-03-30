@@ -5,7 +5,7 @@ import json
 
 from os.path import abspath, exists, join, split
 
-from BioExt.scorematrix import (
+from BioExt.scorematrices import (
     BLOSUM62,
     DNAExpIdScoreMatrix,
     DNAScoreMatrix,
