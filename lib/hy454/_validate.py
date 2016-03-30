@@ -3,7 +3,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from BioExt.misc import translate
-from BioExt.scorematrix import (
+from BioExt.scorematrices import (
     BLOSUM62,
     DNA80
     )
